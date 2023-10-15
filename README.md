@@ -22,6 +22,7 @@ Details
    TCP 소켓을 초기화하고 server_port argument에 묶는다.
    무한루프 내에서 보내지는 연결을 받아들이며 server_routine() 함수를 이용해 서버와 연결을 처리한다.
 2. HTTP 요청은 아래 사진을 따른다.
+
    <img width="454" alt="스크린샷 2023-10-15 오후 1 27 09" src="https://github.com/GeunSuYoon/University_homework/assets/146644182/9d93c8e6-51c3-4a5a-be75-34da8cc1d889">
    - sp는 ' ', cr는 '\r', 그리고 if는 '\n'
    - server_routine 함수 내에 header_buffer 문자 배열과 무한 루프가 있다.
