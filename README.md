@@ -25,6 +25,7 @@ C. Implementation Objectives
    2. HTTP 요청 받고 분석
       - HTTP 요청은 아래 사진을 따른다.
 <img width="454" alt="스크린샷 2023-10-15 오후 1 27 09" src="https://github.com/GeunSuYoon/University_homework/assets/146644182/9d93c8e6-51c3-4a5a-be75-34da8cc1d889">
+
       - sp는 ' ', cr는 '\r', 그리고 if는 '\n'
       - server_routine 함수 내에 header_buffer 문자 배열과 무한 루프가 있다.
         HTTP header를 1. 헤더 끝에 구분기호(i.e., \r\n\r\n)가 수신될 때, 2. 에러가 발생하거나 클라이언트가 연결을 해재할 때, 3. 클라이언트로 부터 너무 긴 헤더 메세지가 올 때 까지 루프 내에서 수신한다.
@@ -47,3 +48,5 @@ C. Implementation Objectives
       - HTTP 응답이 준비되었을 때, 클라이언트에 response를 다시 보내야한다.
         The response massage는 비슷한 HTTP 요청 massage와 비슷한 구조지만, 요청 줄 대신 상태 줄을 사용한 HTTP protocol 표준 형태를 따라야 한다.
 <img width="642" alt="image" src="https://github.com/GeunSuYoon/University_homework/assets/146644182/1ded4fa8-cfa8-43e9-bd41-4a85ade01de5">
+
+
