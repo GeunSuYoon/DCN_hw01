@@ -25,7 +25,7 @@ C. Implementation Objectives
    2. HTTP 요청 받고 분석
       - HTTP 요청은 아래 사진을 따른다.
 <p align="center">
-  <img src="<img width="454" alt="스크린샷 2023-10-15 오후 1 27 09" src="https://github.com/GeunSuYoon/University_homework/assets/146644182/48711af8-f30c-43d7-84bd-11ca1e97bce0">">
+  <img src="https://github.com/GeunSuYoon/University_homework/assets/146644182/48711af8-f30c-43d7-84bd-11ca1e97bce0">
 </p>
       - sp는 ' ', cr는 '\r', 그리고 if는 '\n'
       - server_routine 함수 내에 header_buffer 문자 배열과 무한 루프가 있다.
