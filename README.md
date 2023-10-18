@@ -3,13 +3,13 @@ chmod +x ./http_server* 명령어를 사용해 http_server로 시작하는 이�
 ./http_server_<YOUR_SYSTEM> 62123 명령어를 이용해 서버를 켠다 (YOUR_SYSTEM : apple_silicom, intel_mac, linux, WSL)
 http://127.0.0.1:62123 으로 웹페이지 접근!
 
-## B. Behavior
+# B. Behavior
    1. View Album! 버튼을 클릭하면 web album에 12개의 이미지가 나온다. (초기 이미지)
    2. POST Image에 Browse버튼을 누르면 1MB 이하의 이름이 영어, 숫자로 된 .jpg 이미지를 업로드 할 수 있다.
    3. Go nowhere! 버튼을 누르면 404 Not Found 에러가 출력된다.
    4. Autheticate! 버튼을 누르고 username에 DCN, password에 FALL2023을 입력하면 secret image(초기값 : 교수님 사진)가 출력된다.
 
-## C. Implementation Objectives
+# C. Implementation Objectives
    서버는 아래 일들을 수행한다.
    1. Listening soket을 생성해 웹 브라우저의 연결을 받아들임
    2. HTTP 요청을 수신하고 구문을 분석함
@@ -49,7 +49,7 @@ http://127.0.0.1:62123 으로 웹페이지 접근!
 ![University_homework/assets/146644182/1ded4fa8-cfa8-43e9-bd41-4a85ade01de5](https://github.com/GeunSuYoon/University_homework/assets/146644182/1ded4fa8-cfa8-43e9-bd41-4a85ade01de5)
       - 다행히 해당 부분은 이미 구현되어있다. http_t struct를 옳바른 HTTP response massage로 바꾸고 웹 브라우저로 전송한다. write_http_to_buffer() 함수를 읽어보면 동작원리가 이해가 갈 것이며, parse_http_header() 함수 구현에 도움이 될 것이다!
 
-## D. 중요한 부분
+# D. 중요한 부분
    - 서버를 빌드하기 위해, make를 타이핑 해라. 코드를 바꾸고 난 뒤에는 다시 make 해줘야 한다. ctrl + c로 서버 프로그램을 닫자.
    - 함수의 return value, name 그리고 정의된 함수의 arguments는 바꾸면 안 된다!
    - 테스트 목적으로 다른 파일이나 함수를 정의하거나 만들 수 있지만, "http_engine.c" 파일만 제출해야 한다!
@@ -61,7 +61,7 @@ http://127.0.0.1:62123 으로 웹페이지 접근!
 
 ## Aplication 2: BitTorrent-like P2P file sharing
 
-## Introduction to Torrent Application
+# Introduction to Torrent Application
 ![University_homework/assets/146644182/28973d8a-0a3b-4bcc-8344-521d7270985f](https://github.com/GeunSuYoon/University_homework/assets/146644182/28973d8a-0a3b-4bcc-8344-521d7270985f)
    - 상기 사진에 있는 붉은색 요소들을 사용할 것이다!
    - 각 토렌트 어플들은 토렌트(토렌트 데이터베이스)의 목록, 클라이언트 함수, 서버 함수를 가지고 있다.
