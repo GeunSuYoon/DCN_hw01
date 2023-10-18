@@ -54,4 +54,23 @@ http://127.0.0.1:62123 으로 웹페이지 접근!
    - 함수의 return value, name 그리고 정의된 함수의 arguments는 바꾸면 안 된다!
    - 테스트 목적으로 다른 파일이나 함수를 정의하거나 만들 수 있지만, "http_engine.c" 파일만 제출해야 한다!
    - 필요하다면 http_engine.c 내부에 새로운 함수, 전역 변수, enum, struct등을 정의할 수 있다. 또한, C/POSIX 표준으로 정의된 다른 라이브러리를 사용할 수 있다. 설치가 필요한 외부 라이브러리 사용은 추천하지 않는다!
+   - "http_engine.c" 내부 comments를 주의깊게 읽어라. http_t struct와 helper function을 잘 이용하면 HTTP 요소들의 관리와 조작이 쉬워질 것이다.
+   - 또한, 웹 브라우저의 개발자 도구(Web Developer Tools) 또한 서버 디버깅에 도움을 줄 것이다. 네트워크 탭은 너의 서버와 웹 브라우저 사이 HTTP request 메시지와 HTTP response 메시지 교환을 보여줄 것이다!
+   - 메모리 관리는 성적 반영 X. 하지만 프로젝트가 많은 양의 동적할당과 소켓과 파일 사이의 읽고 쓰는 것을 요구하므로 C 포인터와 메모리 구조를 이해하는 것은 좋다!
+   - HTML, CSS 또는 JS와 같은 프론트 엔드 웹 페이지 요소들은 웹에 중요한 부분이다. 하지만, 이번 과제에서 요구하진 않는다!
+
+## Aplication 2: BitTorrent-like P2P file sharing
+
+## Introduction to Torrent Application
+![University_homework/assets/146644182/28973d8a-0a3b-4bcc-8344-521d7270985f](https://github.com/GeunSuYoon/University_homework/assets/146644182/28973d8a-0a3b-4bcc-8344-521d7270985f)
+   - 상기 사진에 있는 붉은색 요소들을 사용할 것이다!
+   - 각 토렌트 어플들은 토렌트(토렌트 데이터베이스)의 목록, 클라이언트 함수, 서버 함수를 가지고 있다.
+   - 각 토렌트는 파일을 32 킬로바이트의 블록으로 나눌 것이다. 클라리언트 함수는 토렌트 내부의 데이터베이스를 되풀이하고, 토렌트 블록을 다운하기 위해 요구되는 행동(해당 블록에 있는 것으로 알려져있는 peer에 블록 데이터를 요구)을 수행할 것이다.
+   - 서버 함수는 원격 peer의 메세지를 받고 연결의 명령에 따라 적절한 조치를 취할 것이다(HTTP 서버가 하는 것 처럼). A request message, a push massge 이라는 두 다른 타입의 메세지를 서버가 받을 것이다.
+   - A request massage는 원격 peer의 클라이언트 함수로부터 보내지고 특정 토렌트 요소를 요구할 것이다. 원격 peer가 요구하는 토렌트 요소는 네 가지가 있다. A request massage를 받은 후, 서버 함수는 적절한 handler를 불러 최근 push된 massage가 요구하는 요소를 반환할 것이다.
+      1. 토렌트 정보(파일 이름, 사이즈 등)
+      2. 해당 토렌트에 알려진 peer 목록
+      3. Peer의 최근 다운로드 상태
+      4. 블록 데이터
    - 
+   
