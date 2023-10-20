@@ -60,6 +60,36 @@ int add_field_to_http (http_t *http, char *field, char *val)
     - 이후 copy_string(val)로 복사. 실패하면 에러 출력 -1 반환.
     - field_count++ 하고 0 반환.
 
+int remove_field_from_http (http_t *http, char *field)
+    - 인자 중 하나라도 NULL이면 에러 출력 -1 반환.
+    - field_count 0이면 0 반환.
+    - int idx = -1;로 선언 초기화 하고 for문으로 돌면서 field 찾음. 찾으면 idx에 해당 index 넣고 break.
+    - idx -1이면 0 반환.
+    - idx번째 field, val free해줌.
+    - idx번째 이후 field, val 한 칸씩 앞으로 당기고 field_count--; 이후 0 반환.
+
+int add_body_to_http (http_t *http, size_t body_size, void *body_data)
+    - http NULL이면 에러 출력 -1 반환.
+    - body_size 0이거나 body_data NULL이면 0 반환.
+    - http의 body_data가 NULL이거나 body_size가 0이면 에러 출력 -1 반환.
+    - find_http_field_val(http, "Content-Length") == NULL이면 크기 32짜리 char content_length[32] 생성, sprintf로 body_size 값 저장
+    - add_field_to_http(http, "Content_Length", content_length) 실행, -1이면 오류 출력 -1 반환.
+    - body_size http에 저장, http의 body_data malloc으로 생성. NULL이면 오류 출력, 만약 remove_field_from_http(http, "Content-Length") -1이면 오류 출력, -1 반환
+    - memcpy로 http->body_data에 body_data를 body_size만큼 복사 0 반환.
+
+int remove_body_from_http (http_t *http)
+    - http NULL이면 오류 출력 -1 반환.
+    - http->body_data == NULL || http->body_size == 0 이면 0 반환.
+    - http->body_data free하고 http->body_data NULL로 연결 http_body_size 0으로 초기화.
+    - remove_field_from_http(http, "Content-Length") == -1 이면 에러 출력 -1 반환.
+    - 0 반환.
+
+ssize_t write_http_to_buffer (http_t *http, void** buffer_ptr)
+    - size_t buffer_size = 0 선언.
+    - http buffer_ptr 둘 중 하나라도 NULL이면 에러 출력 -1 반환.
+    - 
+
+
 ## B. Behavior
    1. View Album! 버튼을 클릭하면 web album에 12개의 이미지가 나온다. (초기 이미지)
    2. POST Image에 Browse버튼을 누르면 1MB 이하의 이름이 영어, 숫자로 된 .jpg 이미지를 업로드 할 수 있다.
