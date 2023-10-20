@@ -22,7 +22,35 @@
 http_t *parse_http_header (char *header_str)
 {
     http_t *http = init_http();
+	char	*http_method;
+	char	*http_path;
+	char	*http_version;
+	char	*http_field;
+	char	*http_val;
 
+	http_method = strtok(header_str, " ");
+	http_path = strtok(NULL, " ");
+	http_version = strtok(NULL, " ");
+	if (http_method == NULL || http_path == NULL || http_version == NULL)
+	{
+		free_http(http);
+		return (NULL);
+	}
+	http = init_http_with_arg(http_method, http_path, http_version, "");
+	http_field = strtok(NULL, ":");
+	http_val = strtok(NULL, "\r\n"); 
+	while (strncmp(http_field, "\r\n", 2) != 0)
+	{
+		if (add_field_to_http(http, http_field, http_val) == -1)
+		{
+			free_http(http);
+			return (NULL);
+		}
+		http_field = strtok(NULL, ":");
+		http_val = strtok(NULL, "\r\n");
+	}
+	// if (add_body_to_http(http, strlen(header_str), header_str) == -1)
+	// 	return (NULL);
     return http;
 }
 
@@ -41,9 +69,19 @@ int server_engine (int server_port)
 	server_addr_info.sin_family = AF_INET;
 	server_addr_info.sin_port = htons(62123);
 	server_addr_info.sin_addr.s_addr = INADDR_ANY;
-	bind(server_listening_sock, (struct sockaddr*)&server_addr_info, sizeof(server_addr_info));
+	int	server_bind = bind(server_listening_sock, (struct sockaddr*)&server_addr_info, sizeof(server_addr_info));
+	if (server_bind == -1)
+	{
+		close(server_listening_sock);
+    	return 0;
+	}
     // TODO: Listen for incoming connections
-	listen(server_listening_sock, MAX_WAITING_CONNECTIONS);
+	int server_listen = listen(server_listening_sock, MAX_WAITING_CONNECTIONS);
+	if (server_listen == -1)
+	{
+		close(server_listening_sock);
+    	return 0;
+	}
     // Serve incoming connections forever
     while (1)
     {
@@ -52,7 +90,7 @@ int server_engine (int server_port)
         int client_connected_sock = -1;
 
         // TODO: Accept incoming connections
-		client_connected_sock = accpet(server_listening_sock, (struct sockaddr*)&client_addr_info, &client_addr_info_len);
+		client_connected_sock = accept(server_listening_sock, (struct sockaddr*)&client_addr_info, &client_addr_info_len);
         // Serve the client
         server_routine (client_connected_sock);
         
@@ -89,7 +127,7 @@ int server_routine (int client_sock)
     //       2. Error occurs on read() (i.e. read() returns -1)
     //       3. Client disconnects (i.e. read() returns 0)
     //       4. MAX_HTTP_MSG_HEADER_SIZE is reached (i.e. message is too long)
-	send(client_sock, request, strlen(request), 0);
+	send(client_sock, header_buffer, MAX_HTTP_MSG_HEADER_SIZE, 0);
 	header_too_large_flag = recv(client_sock, header_buffer, sizeof(header_buffer), 0);
 
     // while (1)
@@ -135,7 +173,7 @@ int server_routine (int client_sock)
         //       You are NOT REQUIRED to implement and use parse_http_header().
         //       However, if you do, you will be able to use the http struct and its member functions,
         //       which will make things MUCH EASIER for you. We highly recommend you to do so.
-		response = init_http_with_arg();
+
         request = parse_http_header (header_buffer); // TODO: Change this to your implementation.
 
 
@@ -152,7 +190,13 @@ int server_routine (int client_sock)
             int auth_flag = 0;
             char *auth_list[] = {"/secret.html", "/public/images/khl.jpg"};
             char ans_plain[] = "DCN:FALL2023"; // ID:password (Please do not change this.)
-
+			// if (strncmp(request->status, "401", 3) == 0)
+			// {
+			// 	if (find_http_field_val(request, auth_list) != NULL)
+			// 	{
+			// 		if (find_http_field_val(request, ans_plain) != NULL)
+			// 	}
+			// }
 
             // Case 2-1: If authorization succeeded...
             // TODO: Get the file path from the request.
