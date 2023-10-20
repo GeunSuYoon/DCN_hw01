@@ -4,6 +4,7 @@ chmod +x ./http_server* 명령어를 사용해 http_server로 시작하는 이�
 http://127.0.0.1:62123 으로 웹페이지 접근!
 
 # Application 1: HTTP server
+
 typedef struct http_field_t
 {
     char *field;
