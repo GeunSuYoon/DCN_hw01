@@ -26,19 +26,19 @@ typedef struct http_t
     http_field_t *fields;
 } http_t;
 
-http_t *init_http ()
+http_t *init_http ();
 
     - http_t *http calloc으로 생성, http NULL이면 에러 출력 NULL 반환.
     - http_t 내 모든 요소 0, NULL, default로 초기화. field는 malloc. NULL이면 에러 출력 NULL 반환.
 
-http_t *init_http_with_arg (char *method, char *path, char *version, char *status)
+http_t *init_http_with_arg (char *method, char *path, char *version, char *status);
 
     - version과 status NULL이면 에러 출력 NULL 반환.
     - http_t *response 생성 및 init_http()로 초기화. NULL이면 에러 출력 NULL 반환.
     - 인자로 받은 모든 요소 copy_string()으로 복사하며 response 각 요소에 연결. NULL시 에러 출력 NULL 반환.
     - response 반환. 에러 발생시 response free하고 NULL 반환.
 
-http_t *copy_http (http_t *http)
+http_t *copy_http (http_t *http);
 
     - 인자로 NULL 들어오면 에러 출력 NULL 반환.
     - http_t *copy에 init_http_with_arg()로 http 각 요소 복사. NULL이면 에러 출력 NULL 반환.
@@ -46,18 +46,18 @@ http_t *copy_http (http_t *http)
     - for문으로 field_count만큼 field와 val을 add_field_to_http로 복사. -1이면 에러 출력 NULL 반환. 
     - copy 반환. 에러 발생시 copy free하고 NULL 반환.
 
-void free_http (http_t *http)
+void free_http (http_t *http);
 
     - 인자 NULL이면 바로 NULL 반환.
     - 모든 요소 free 후 http도 free.
 
-char *find_http_field_val (http_t *http, char *field)
+char *find_http_field_val (http_t *http, char *field);
 
     - 인자로 받은 둘 중 하나라도 NULL이면 에러 출력 NULL 반환.
     - for문으로 돌아가면 strcmp 동작, 0이면 해당 field값 반환.
     - 다 돌고 없으면 NULL 반환.
 
-int add_field_to_http (http_t *http, char *field, char *val)
+int add_field_to_http (http_t *http, char *field, char *val);
 
     - 인자로 받은 값 하나라도 NULL이면 에러 출력 -1 반환.
     - find_http_field_val(http, field)가 0 아니면 에러 출력 -1 반환.
@@ -67,7 +67,7 @@ int add_field_to_http (http_t *http, char *field, char *val)
     - 이후 copy_string(val)로 복사. 실패하면 에러 출력 -1 반환.
     - field_count++ 하고 0 반환.
 
-int remove_field_from_http (http_t *http, char *field)
+int remove_field_from_http (http_t *http, char *field);
 
     - 인자 중 하나라도 NULL이면 에러 출력 -1 반환.
     - field_count 0이면 0 반환.
@@ -76,7 +76,7 @@ int remove_field_from_http (http_t *http, char *field)
     - idx번째 field, val free해줌.
     - idx번째 이후 field, val 한 칸씩 앞으로 당기고 field_count--; 이후 0 반환.
 
-int add_body_to_http (http_t *http, size_t body_size, void *body_data)
+int add_body_to_http (http_t *http, size_t body_size, void *body_data);
 
     - http NULL이면 에러 출력 -1 반환.
     - body_size 0이거나 body_data NULL이면 0 반환.
@@ -86,7 +86,7 @@ int add_body_to_http (http_t *http, size_t body_size, void *body_data)
     - body_size http에 저장, http의 body_data malloc으로 생성. NULL이면 오류 출력, 만약 remove_field_from_http(http, "Content-Length") -1이면 오류 출력, -1 반환
     - memcpy로 http->body_data에 body_data를 body_size만큼 복사 0 반환.
 
-int remove_body_from_http (http_t *http)
+int remove_body_from_http (http_t *http);
 
     - http NULL이면 오류 출력 -1 반환.
     - http->body_data == NULL || http->body_size == 0 이면 0 반환.
@@ -94,7 +94,7 @@ int remove_body_from_http (http_t *http)
     - remove_field_from_http(http, "Content-Length") == -1 이면 에러 출력 -1 반환.
     - 0 반환.
 
-ssize_t write_http_to_buffer (http_t *http, void** buffer_ptr)
+ssize_t write_http_to_buffer (http_t *http, void** buffer_ptr);
 
     - size_t buffer_size = 0 선언.
     - http buffer_ptr 둘 중 하나라도 NULL이면 에러 출력 -1 반환.
