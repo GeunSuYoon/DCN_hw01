@@ -14,6 +14,7 @@
 #include "unistd.h"
 #include "signal.h"
 #include "stdint.h"
+#include "curl/curl.h"
 
 #define RED_PRTF(...) {printf("\033[0;31m"); printf(__VA_ARGS__); printf("\033[0m");}
 #define GREEN_PRTF(...) {printf("\033[0;32m"); printf(__VA_ARGS__); printf("\033[0m");}

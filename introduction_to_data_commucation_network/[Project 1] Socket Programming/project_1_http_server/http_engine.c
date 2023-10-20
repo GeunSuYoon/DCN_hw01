@@ -32,14 +32,18 @@ int server_engine (int server_port)
 {
     int server_listening_sock = -1;
     // TODO: Initialize server socket
-
+	server_listening_sock = socket(AF_INET, SOCK_STREAM, 0);
     // TODO: Set socket options to reuse the port immediately after the connection is closed
-
+	int	reuse = 1;
+	setsockopt(server_listening_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
     // TODO: Bind server socket to the given port
-    
-
+    struct sockaddr_in server_addr_info;
+	server_addr_info.sin_family = AF_INET;
+	server_addr_info.sin_port = htons(62123);
+	server_addr_info.sin_addr.s_addr = INADDR_ANY;
+	bind(server_listening_sock, (struct sockaddr*)&server_addr_info, sizeof(server_addr_info));
     // TODO: Listen for incoming connections
-
+	listen(server_listening_sock, MAX_WAITING_CONNECTIONS);
     // Serve incoming connections forever
     while (1)
     {
@@ -48,16 +52,16 @@ int server_engine (int server_port)
         int client_connected_sock = -1;
 
         // TODO: Accept incoming connections
-
+		client_connected_sock = accpet(server_listening_sock, (struct sockaddr*)&client_addr_info, &client_addr_info_len);
         // Serve the client
         server_routine (client_connected_sock);
         
         // TODO: Close the connection with the client
-
+		close(client_connected_sock);
     }
 
     // TODO: Close the server socket
-
+	close(server_listening_sock);
     return 0;
 }
 
@@ -85,12 +89,15 @@ int server_routine (int client_sock)
     //       2. Error occurs on read() (i.e. read() returns -1)
     //       3. Client disconnects (i.e. read() returns 0)
     //       4. MAX_HTTP_MSG_HEADER_SIZE is reached (i.e. message is too long)
-    while (1)
-    {
-        // Remove this line and implement the logic described above.
-        header_too_large_flag = 1;
-        break;
-    }
+	send(client_sock, request, strlen(request), 0);
+	header_too_large_flag = recv(client_sock, header_buffer, sizeof(header_buffer), 0);
+
+    // while (1)
+    // {
+    //     // Remove this line and implement the logic described above.
+    //     header_too_large_flag = 1;
+    //     break;
+    // }
 
     // Send different http response depending on the request.
     // Carefully follow the four cases and their TODOs described below.
@@ -101,7 +108,8 @@ int server_routine (int client_sock)
     // TODO: Send 431 Request Header Fields Too Large. (IMPLEMENTED)
     // HINT: In most real-world web browsers, this error rarely occurs.
     //       However, we implemented this case to give you a HINT on how to use the included functions in http_util.c.
-    if (header_too_large_flag)
+
+    if (header_too_large_flag < 0)
     {
         // Create the response, with the appropriate status code and http version.
         // Refer to http_util.c for more details.
@@ -127,7 +135,7 @@ int server_routine (int client_sock)
         //       You are NOT REQUIRED to implement and use parse_http_header().
         //       However, if you do, you will be able to use the http struct and its member functions,
         //       which will make things MUCH EASIER for you. We highly recommend you to do so.
-
+		response = init_http_with_arg();
         request = parse_http_header (header_buffer); // TODO: Change this to your implementation.
 
 
