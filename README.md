@@ -3,6 +3,28 @@ chmod +x ./http_server* 명령어를 사용해 http_server로 시작하는 이�
 ./http_server_<YOUR_SYSTEM> 62123 명령어를 이용해 서버를 켠다 (YOUR_SYSTEM : apple_silicom, intel_mac, linux, WSL)
 http://127.0.0.1:62123 으로 웹페이지 접근!
 
+# Application 1: HTTP server
+typedef struct http_field_t
+{
+    char *field;
+    char *val;
+} http_field_t;
+
+typedef struct http_t
+{
+    char *method;
+    char *path;
+    char *version;
+    char *status;
+
+    size_t body_size;
+    void *body_data;
+
+    int field_count;
+    int max_field_count;
+    http_field_t *fields;
+} http_t;
+
 ## B. Behavior
    1. View Album! 버튼을 클릭하면 web album에 12개의 이미지가 나온다. (초기 이미지)
    2. POST Image에 Browse버튼을 누르면 1MB 이하의 이름이 영어, 숫자로 된 .jpg 이미지를 업로드 할 수 있다.
