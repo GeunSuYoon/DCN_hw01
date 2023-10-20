@@ -25,6 +25,38 @@ typedef struct http_t
     http_field_t *fields;
 } http_t;
 
+http_t *init_http ()
+    - http_t *http calloc으로 생성, http NULL이면 에러 출력 NULL 반환.
+    - http_t 내 모든 요소 0, NULL, default로 초기화. field는 malloc. NULL이면 에러 출력 NULL 반환.
+
+http_t *init_http_with_arg (char *method, char *path, char *version, char *status)
+    - version과 status NULL이면 에러 출력 NULL 반환.
+    - http_t *response 생성 및 init_http()로 초기화. NULL이면 에러 출력 NULL 반환.
+    - 인자로 받은 모든 요소 copy_string()으로 복사하며 response 각 요소에 연결. NULL시 에러 출력 NULL 반환.
+    - response 반환. 에러 발생시 response free하고 NULL 반환.
+
+http_t *copy_http (http_t *http)
+    - 인자로 NULL 들어오면 에러 출력 NULL 반환.
+    - http_t *copy에 init_http_with_arg()로 http 각 요소 복사. NULL이면 에러 출력 NULL 반환.
+    - add_body_to_http() 실행해서 http의 body 요소 copy로 복사. -1이면 에러 출력 NULL 반환.
+    - for문으로 field_count만큼 field와 val을 add_field_to_http로 복사. -1이면 에러 출력 NULL 반환. 
+    - copy 반환. 에러 발생시 copy free하고 NULL 반환.
+
+void free_http (http_t *http)
+    - 인자 NULL이면 바로 NULL 반환.
+    - 모든 요소 free 후 http도 free.
+
+char *find_http_field_val (http_t *http, char *field)
+    - 인자로 받은 둘 중 하나라도 NULL이면 에러 출력 NULL 반환.
+    - for문으로 돌아가면 strcmp 동작, 0이면 해당 field값 반환.
+    - 다 돌고 없으면 NULL 반환.
+
+int add_field_to_http (http_t *http, char *field, char *val)
+    - 인자로 받은 값 하나라도 NULL이면 에러 출력 -1 반환.
+    - find_http_field_val(http, field)가 0 아니면 에러 출력 -1 반환.
+    - 현재 field_count + 1 이 max_field_count보다 크면 max_field_count 2배, http에 fields요소 realloc. 실패시 에러 출력 max_field_count / 2 하고 -1 반환.
+    - 성공하면 memset.
+
 ## B. Behavior
    1. View Album! 버튼을 클릭하면 web album에 12개의 이미지가 나온다. (초기 이미지)
    2. POST Image에 Browse버튼을 누르면 1MB 이하의 이름이 영어, 숫자로 된 .jpg 이미지를 업로드 할 수 있다.
