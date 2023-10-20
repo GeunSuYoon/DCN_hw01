@@ -56,7 +56,7 @@ int add_field_to_http (http_t *http, char *field, char *val)
     - find_http_field_val(http, field)가 0 아니면 에러 출력 -1 반환.
     - 현재 field_count + 1 이 max_field_count보다 크면 max_field_count 2배, http에 fields요소 realloc. 실패시 에러 출력 max_field_count / 2 하고 -1 반환.
     - 성공하면 memset.
-
+ 
 ## B. Behavior
    1. View Album! 버튼을 클릭하면 web album에 12개의 이미지가 나온다. (초기 이미지)
    2. POST Image에 Browse버튼을 누르면 1MB 이하의 이름이 영어, 숫자로 된 .jpg 이미지를 업로드 할 수 있다.
