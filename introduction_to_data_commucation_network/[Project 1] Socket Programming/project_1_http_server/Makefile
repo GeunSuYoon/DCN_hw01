@@ -17,7 +17,7 @@ DEPS = $(wildcard *.h)
 OPTS=-O3
 LDFLAGS=
 COMMON= 
-CFLAGS= -Wall -Wno-unused-variable
+CFLAGS= -Wall -Wno-unused-variable -g
 
 OBJS= $(addprefix $(OBJDIR), $(OBJECTS))
 EXEOBJSA= $(addsuffix .o, $(TARGET))
@@ -36,3 +36,5 @@ obj:
 
 clean:
 	rm -rf $(TARGET) $(EXEOBJS) $(OBJS) $(OBJDIR)
+
+re : clean all

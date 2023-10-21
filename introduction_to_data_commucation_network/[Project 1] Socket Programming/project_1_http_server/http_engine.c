@@ -28,27 +28,29 @@ http_t *parse_http_header (char *header_str)
 	char	*http_field;
 	char	*http_val;
 
+	printf("\n%s\n", header_str);
 	http_method = strtok(header_str, " ");
 	http_path = strtok(NULL, " ");
-	http_version = strtok(NULL, " ");
+	http_version = strtok(NULL, "\r\n");
 	if (http_method == NULL || http_path == NULL || http_version == NULL)
 	{
 		free_http(http);
 		return (NULL);
 	}
-	http = init_http_with_arg(http_method, http_path, http_version, "");
-	http_field = strtok(NULL, ":");
+	http = init_http_with_arg(http_method, http_path, http_version, "NULL");
+	http_field = strtok(NULL, " ");
 	http_val = strtok(NULL, "\r\n"); 
-	while (strncmp(http_field, "\r\n", 2) != 0)
+	while (strncmp(http_field + 1, "\r\n", 2) != 0)
 	{
-		if (add_field_to_http(http, http_field, http_val) == -1)
+		if (add_field_to_http(http, http_field + 1, http_val) == -1)
 		{
 			free_http(http);
 			return (NULL);
 		}
-		http_field = strtok(NULL, ":");
+		http_field = strtok(NULL, " ");
 		http_val = strtok(NULL, "\r\n");
 	}
+	// if ()
 	// if (add_body_to_http(http, strlen(header_str), header_str) == -1)
 	// 	return (NULL);
     return http;
@@ -127,8 +129,10 @@ int server_routine (int client_sock)
     //       2. Error occurs on read() (i.e. read() returns -1)
     //       3. Client disconnects (i.e. read() returns 0)
     //       4. MAX_HTTP_MSG_HEADER_SIZE is reached (i.e. message is too long)
-	send(client_sock, header_buffer, MAX_HTTP_MSG_HEADER_SIZE, 0);
-	header_too_large_flag = recv(client_sock, header_buffer, sizeof(header_buffer), 0);
+	// bytes_received = send(client_sock, header_buffer, MAX_HTTP_MSG_HEADER_SIZE, 0);
+	bytes_received = read(client_sock, header_buffer, MAX_HTTP_MSG_HEADER_SIZE);
+	if (bytes_received == MAX_HTTP_MSG_HEADER_SIZE)
+		header_too_large_flag = -1;
 
     // while (1)
     // {
@@ -182,7 +186,15 @@ int server_routine (int client_sock)
         {
             // Case 2: GET request is received.
             // HINT: It is common to return index.html when the client requests a directory.
-            
+			if (request != NULL)
+			{
+				printf ("CLIENT ");
+
+				GREEN_PRTF ("CONNECTED.\n");
+				printf ("\tHTTP ");
+				GREEN_PRTF ("REQUEST:\n");
+				print_http_header (request);
+			}
             // TODO: First check if the requested file needs authorization. If so, check if the client is authorized.
             // HINT: The client will send the ID and password in BASE64 encoding in the Authorization header field, 
             //       in the format of "Basic <ID:password>", where <ID:password> is encoded in BASE64.
@@ -190,6 +202,23 @@ int server_routine (int client_sock)
             int auth_flag = 0;
             char *auth_list[] = {"/secret.html", "/public/images/khl.jpg"};
             char ans_plain[] = "DCN:FALL2023"; // ID:password (Please do not change this.)
+			if (auth_flag == 0)
+			{
+				response = init_http_with_arg (NULL, NULL, http_version, "200");
+				if (response == NULL)
+				{
+					printf ("SERVER ERROR: Failed to create HTTP response\n");
+					return -1;
+				}
+				void *content = NULL;
+				char *file_path = copy_string("./server_root");
+				file_path = strcat(file_path, request->path);
+				if (strcmp(file_path, "./server_root/") == 0)
+					file_path = strcat(file_path, "index.html");
+				add_field_to_http (response, "Content-Type", get_file_extension(file_path));
+				add_field_to_http (response, "Connection", "close");
+				add_body_to_http (response, read_file(&content, file_path), content);
+			}
 			// if (strncmp(request->status, "401", 3) == 0)
 			// {
 			// 	if (find_http_field_val(request, auth_list) != NULL)
