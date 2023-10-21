@@ -28,7 +28,6 @@ http_t *parse_http_header (char *header_str)
 	char	*http_field;
 	char	*http_val;
 
-	printf("\n%s\n", header_str);
 	http_method = strtok(header_str, " ");
 	http_path = strtok(NULL, " ");
 	http_version = strtok(NULL, "\r\n");
@@ -93,10 +92,17 @@ int server_engine (int server_port)
 
         // TODO: Accept incoming connections
 		client_connected_sock = accept(server_listening_sock, (struct sockaddr*)&client_addr_info, &client_addr_info_len);
+		char	client_ip[INET_ADDRSTRLEN];
+		unsigned int	client_port = ntohs(client_addr_info.sin_port);
+		inet_ntop(AF_INET, &(client_addr_info.sin_addr), client_ip, INET_ADDRSTRLEN);
+		printf ("CLIENT %s:%u ", client_ip, client_port);
+		GREEN_PRTF ("CONNECTED.\n");
         // Serve the client
         server_routine (client_connected_sock);
         
         // TODO: Close the connection with the client
+		printf ("CLIENT %s:%u ", client_ip, client_port);
+		GREEN_PRTF ("DISCONNECTED.\n\n");
 		close(client_connected_sock);
     }
 
@@ -188,9 +194,6 @@ int server_routine (int client_sock)
             // HINT: It is common to return index.html when the client requests a directory.
 			if (request != NULL)
 			{
-				printf ("CLIENT ");
-
-				GREEN_PRTF ("CONNECTED.\n");
 				printf ("\tHTTP ");
 				GREEN_PRTF ("REQUEST:\n");
 				print_http_header (request);
@@ -211,13 +214,20 @@ int server_routine (int client_sock)
 					return -1;
 				}
 				void *content = NULL;
-				char *file_path = copy_string("./server_root");
+				char *file_path = copy_string(SERVER_ROOT);
 				file_path = strcat(file_path, request->path);
-				if (strcmp(file_path, "./server_root/") == 0)
+				if (strcmp(request->path, "/") == 0)
 					file_path = strcat(file_path, "index.html");
-				add_field_to_http (response, "Content-Type", get_file_extension(file_path));
-				add_field_to_http (response, "Connection", "close");
+				printf("%s\n", file_path);
+				char *file_extension = copy_string(get_file_extension(file_path));
+				printf("%s\n", file_path);
 				add_body_to_http (response, read_file(&content, file_path), content);
+				printf("%s\n", file_path);
+				add_field_to_http (response, "Connection", "close");
+				add_field_to_http (response, "Content-Type", file_extension);
+				free(content);
+				free(file_path);
+				free(file_extension);
 			}
 			// if (strncmp(request->status, "401", 3) == 0)
 			// {
