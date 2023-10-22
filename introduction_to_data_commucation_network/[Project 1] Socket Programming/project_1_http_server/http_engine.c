@@ -349,36 +349,9 @@ int server_routine (int client_sock)
 			http_t	*request_body = init_http();
 			char *test = strstr(header_buffer, "\r\n\r\n");
 			char* boundaryStart = strstr(header_buffer, "boundary=");
-			if (boundaryStart != NULL) {
-			boundaryStart += strlen("boundary=");
+			if (boundaryStart != NULL)
+				boundaryStart += strlen("boundary=");
 			char* boundaryEnd = strchr(boundaryStart, '\r');
-			if (boundaryEnd != NULL) {
-				char boundary[256];
-				int boundaryLength = boundaryEnd - boundaryStart;
-				strncpy(boundary, boundaryStart, boundaryLength);
-				boundary[boundaryLength] = '\0';
-
-				// Split the request body into parts using the boundary
-				char* part = strtok(request_body, boundary);
-
-				// Loop through the parts
-				while (part != NULL) {
-					// Find the filename in Content-Disposition header
-					char* filenameStart = strstr(part, "filename=\"");
-					if (filenameStart != NULL) {
-						filenameStart += strlen("filename=\"");
-						char* filenameEnd = strchr(filenameStart, '\"');
-						if (filenameEnd != NULL) {
-							char filename[256];
-							int filenameLength = filenameEnd - filenameStart;
-							strncpy(filename, filenameStart, filenameLength);
-							filename[filenameLength] = '\0';
-							printf("File Name: %s\n", filename);
-						}
-					}
-					// Move to the next part
-					part = strtok(NULL, boundary);
-			}
 			// char	*tmp = strstr(header_buffer, "\r\n\r\n");
 			// printf("%s\n", tmp);
 			// char	*boundary_start = strstr(header_buffer, "boundary=");
