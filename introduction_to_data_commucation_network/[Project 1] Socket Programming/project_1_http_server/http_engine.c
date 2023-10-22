@@ -346,65 +346,90 @@ int server_routine (int client_sock)
             //       Refer to https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST for more information.
 
             // TODO: Parse each request_body of the multipart content request_body.			
-			char *file_path = (char *)malloc(MAX_PATH_SIZE);
-			file_path = strcpy(file_path, SERVER_ROOT);
-			void *content = NULL;
-			file_path = strcat(file_path, request->path);
-			if (strcmp(request->path, "/") == 0)
-				file_path = strcat(file_path, "index.html");
-			ssize_t	body_size = read_file(&content, file_path);
 			http_t	*request_body = init_http();
-			char	*header_buffer_body = strstr(header_buffer, "Content");
-			char	*file_content = strstr(header_buffer, "\r\n\r\n");
-			file_content += 4;
-			char	*http_field = strtok(header_buffer_body, ":");
-			char	*http_val = strtok(NULL, "\r\n"); 
-			while (strncmp(http_field + 1, "\r\n", 2) != 0)
-			{
-				if (add_field_to_http(request_body, http_field + 1, http_val + 1) == -1)
-				{
-					ERROR_PRTF ("SERVER ERROR: Failed to receive HTTP field\n");
-					free_http(request_body);
-					return -1;
-				}
-				http_field = strtok(NULL, ":");
-				http_val = strtok(NULL, "\r\n");
+			char *test = strstr(header_buffer, "\r\n\r\n");
+			char* boundaryStart = strstr(header_buffer, "boundary=");
+			if (boundaryStart != NULL) {
+			boundaryStart += strlen("boundary=");
+			char* boundaryEnd = strchr(boundaryStart, '\r');
+			if (boundaryEnd != NULL) {
+				char boundary[256];
+				int boundaryLength = boundaryEnd - boundaryStart;
+				strncpy(boundary, boundaryStart, boundaryLength);
+				boundary[boundaryLength] = '\0';
+
+				// Split the request body into parts using the boundary
+				char* part = strtok(request_body, boundary);
+
+				// Loop through the parts
+				while (part != NULL) {
+					// Find the filename in Content-Disposition header
+					char* filenameStart = strstr(part, "filename=\"");
+					if (filenameStart != NULL) {
+						filenameStart += strlen("filename=\"");
+						char* filenameEnd = strchr(filenameStart, '\"');
+						if (filenameEnd != NULL) {
+							char filename[256];
+							int filenameLength = filenameEnd - filenameStart;
+							strncpy(filename, filenameStart, filenameLength);
+							filename[filenameLength] = '\0';
+							printf("File Name: %s\n", filename);
+						}
+					}
+					// Move to the next part
+					part = strtok(NULL, boundary);
 			}
-			printf ("\tHTTP ");
-			GREEN_PRTF ("POST BODY:\n");
+			// char	*tmp = strstr(header_buffer, "\r\n\r\n");
+			// printf("%s\n", tmp);
+			// char	*boundary_start = strstr(header_buffer, "boundary=");
+			// if (boundary_start == NULL)
+			// {
+			// 	return (-1);
+			// }
+			// boundary_start += strlen("boundary=");
+			// char	*boundary_end = strstr(boundary_start, "\r\n");
+			// if (add_field_to_http(request_body, "Content-Disposition", "form-data; name=\"upload\"; filename=\"\\") == -1)
+			// {
+			// 	free_http(request_body);
+			// 	return (-1);
+			// }
+			// if (add_field_to_http(request_body, "Content-Disposition", "form-data; name=\"upload\"; filename=\"\\") == -1)
+			// {
+			// 	free_http(request_body);
+			// 	return (-1);
+			// }
+			// if (add_field_to_http(request_body, "Content-Disposition", "form-data; name=\"upload\"; filename=\"\\") == -1)
+			// {
+			// 	free_http(request_body);
+			// 	return (-1);
+			// }
 			print_http_header (request_body);
             // TODO: Get the filename of the file.
+			char	*file_content = "add what you found";
 			char	*tmp_fname = strstr(find_http_field_val(request_body, "Content-Disposition"), "filename=");
 			tmp_fname = strstr(tmp_fname, "\"");
-			// tmp_fname = strtok(NULL, "");
             char	*filename = tmp_fname;
 			char	*file_extention = strstr(tmp_fname, ".");
+			printf ("\tHTTP ");
+			GREEN_PRTF ("POST BODY:\n");
             // TODO: Check if the file is an image file.
 			if (strncmp(file_extention, ".jpg", 4) != 0)
 			{
 				ERROR_PRTF ("SERVER ERROR: Invalid file type\n");
 				free_http (request);
 				free_http (request_body);
-				// free_http (requrequest_body_get_filenameest);/
-				// free_http (tmp_get_fname);
 				return -1;
 			}
             // TODO: Save the file in the album.
 			char	*write_path = (char *)calloc(MAX_PATH_SIZE, sizeof(char));
 			write_path = strcat(write_path, SERVER_ROOT);
 			write_path = strcat(write_path, ALBUM_PATH);
-			// char	*file_binary = strstr(find_http_field_val(request), "Content-Type");
-			// file_binary = strstr(file_binary, "boundary");
-			// file_binary = strstr(file_binary, "=");
-			// file_binary += 1;
 			ssize_t	file_size = write_file(write_path, file_content, sizeof(file_content));
 			if (file_size == -1)
 			{
             	ERROR_PRTF ("SERVER ERROR: Failed to write file to album_images.html\n");
 				free_http (request);
 				free_http (request_body);
-				// free_http (requrequest_body_get_filenameest);
-				// free_http (tmp_get_fname);
 				return -1;
 			}
             // Append the appropriate html for the new image to album.html.
@@ -415,6 +440,13 @@ int server_routine (int client_sock)
             free (html_append);
 
             // TODO: Respond with a 200 OK.
+			char *file_path = (char *)malloc(MAX_PATH_SIZE);
+			file_path = strcpy(file_path, SERVER_ROOT);
+			void *content = NULL;
+			file_path = strcat(file_path, request->path);
+			if (strcmp(request->path, "/") == 0)
+				file_path = strcat(file_path, "index.html");
+			ssize_t	body_size = read_file(&content, file_path);
 			response = init_http_with_arg (NULL, NULL, http_version, "200");
 			if (response == NULL)
 			{
