@@ -41,8 +41,7 @@ char	*string_cutter(char *start, char *end)
 {
 	if (start == NULL || end == NULL)
 		return (NULL);
-	size_t	str_len;
-	str_len = 0;
+	size_t	str_len = 0;
 	while (start[str_len] != *end)
 		str_len++;
 	char	*ret_char = (char *)calloc(str_len + 1, sizeof(char));
@@ -58,6 +57,20 @@ char	*string_cutter(char *start, char *end)
 	return (ret_char);
 }
 
+http_t	*post_body(char *header_buffer, http_t *request)
+{
+	http_t	*ret_http = init_http();
+	char	*tmp = strstr(find_http_field_val(request, "Content-Type"), "boundary=");
+	if (tmp == NULL)
+		return (NULL);
+	tmp += strlen("boundary=");
+	char	*asdf = strstr(header_buffer, tmp);
+	printf("%s\n", asdf);
+	asdf = strstr(asdf + strlen(tmp), tmp);
+	printf("%s\n", asdf);
+	return (ret_http);
+}
+
 // You are NOT REQUIRED to implement and use parse_http_header() function for this project.
 // However, if you do, you will be able to use the http struct and its member functions,
 // which will make things MUCH EASIER for you. We highly recommend you to do so.
@@ -67,7 +80,7 @@ http_t *parse_http_header (char *header_str)
     http_t *http = init_http();
 	char	*string_cut_ptr1 = header_str;
 	char	*string_cut_ptr2 = strstr(header_str, " ");
-	char	*http_method =  string_cutter(string_cut_ptr1, string_cut_ptr2);
+	char	*http_method = string_cutter(string_cut_ptr1, string_cut_ptr2);
 	char	*http_path = string_cutter(string_cut_ptr2 + 1, string_cut_ptr1 = strstr(string_cut_ptr2 + 1, " "));
 	char	*http_version = string_cutter(string_cut_ptr1 + 1 , string_cut_ptr2 = strstr(string_cut_ptr1 + 1, "\r\n"));
 	char	*http_field;
@@ -265,7 +278,19 @@ int server_routine (int client_sock)
             char ans_plain[] = "DCN:FALL2023"; // ID:password (Please do not change this.)
 			if (strstr(request->path, auth_list[0]) || strstr(request->path, auth_list[1]))
 			{
-				auth_flag = 1;
+				if (find_http_field_val(request, "Authorization") == NULL)
+					auth_flag = 1;
+				else
+				{
+					char	*input_auth = strchr(find_http_field_val(request, "Authorization"), ' ');
+					if (input_auth != NULL)
+						input_auth += 1;
+					size_t	max_decode_len = strlen(input_auth);
+					char	*encode_ans = base64_encode(ans_plain, max_decode_len);
+					printf("%s\n", encode_ans);
+					if (strncmp(input_auth, encode_ans, max_decode_len) != 0)
+						auth_flag = 1;
+				}
 			}
 
 			char *file_path = (char *)malloc(MAX_PATH_SIZE);
@@ -346,12 +371,15 @@ int server_routine (int client_sock)
             //       Refer to https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST for more information.
 
             // TODO: Parse each request_body of the multipart content request_body.			
-			http_t	*request_body = init_http();
-			char *test = strstr(header_buffer, "\r\n\r\n");
-			char* boundaryStart = strstr(header_buffer, "boundary=");
-			if (boundaryStart != NULL)
-				boundaryStart += strlen("boundary=");
-			char* boundaryEnd = strchr(boundaryStart, '\r');
+			http_t	*request_body = NULL;
+			request_body = post_body(header_buffer, request);
+			// char	*tmp = strstr(header_buffer, "Content-Disposition");
+			// printf("%s\n", tmp);
+			// char	*boundary = strstr(find_http_field_val(request, "Content-Type"), "boundary=");
+			// if (boundary != NULL)
+			// 	boundary += strlen("boundary=");
+			// printf("%s\n", boundary);
+			// char	*body_data = strstr(header_buffer, boundary);
 			// char	*tmp = strstr(header_buffer, "\r\n\r\n");
 			// printf("%s\n", tmp);
 			// char	*boundary_start = strstr(header_buffer, "boundary=");
@@ -376,7 +404,6 @@ int server_routine (int client_sock)
 			// 	free_http(request_body);
 			// 	return (-1);
 			// }
-			print_http_header (request_body);
             // TODO: Get the filename of the file.
 			char	*file_content = "add what you found";
 			char	*tmp_fname = strstr(find_http_field_val(request_body, "Content-Disposition"), "filename=");
@@ -385,6 +412,7 @@ int server_routine (int client_sock)
 			char	*file_extention = strstr(tmp_fname, ".");
 			printf ("\tHTTP ");
 			GREEN_PRTF ("POST BODY:\n");
+			print_http_header (request_body);
             // TODO: Check if the file is an image file.
 			if (strncmp(file_extention, ".jpg", 4) != 0)
 			{
