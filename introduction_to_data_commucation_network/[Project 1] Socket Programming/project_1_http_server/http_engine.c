@@ -14,6 +14,49 @@
 #define ALBUM_HTML_PATH "./server_root/public/album/album_images.html"
 #define ALBUM_HTML_TEMPLATE "<div class=\"card\"> <img src=\"/public/album/%s\" alt=\"Unable to load %s\"> </div>\n"
 
+char	*find_content_type(char *file_path, char *request_accept)
+{
+	char	*tmp_path = copy_string(file_path);
+	char	*tmp_acpt = copy_string(request_accept);
+	char	*extention = strtok(tmp_path + 1, ".");
+	extention = strtok(NULL, ".");
+	
+	if (strstr(tmp_acpt, extention) == NULL)
+	{
+		free(tmp_path);
+		free(tmp_acpt);
+		return (copy_string("ASD"));
+	}
+	char	*content_type = strtok(tmp_acpt, ",;");
+	while (strstr(content_type, extention) == NULL)
+	{
+		content_type = strtok(NULL, ",;");
+	}
+	free(tmp_path);
+	free(tmp_acpt);
+	return (content_type);
+}
+
+char	*string_cutter(char *start, char *end)
+{
+	if (start == NULL || end == NULL)
+		return (NULL);
+	size_t	str_len;
+	str_len = 0;
+	while (start[str_len] != *end)
+		str_len++;
+	char	*ret_char = (char *)calloc(str_len + 1, sizeof(char));
+	if (ret_char == NULL)
+		return (NULL);
+	size_t	str_cnt = 0;
+
+	while (str_cnt < str_len)
+	{
+		ret_char[str_cnt] = start[str_cnt];
+		str_cnt ++;
+	}
+	return (ret_char);
+}
 
 // You are NOT REQUIRED to implement and use parse_http_header() function for this project.
 // However, if you do, you will be able to use the http struct and its member functions,
@@ -22,36 +65,49 @@
 http_t *parse_http_header (char *header_str)
 {
     http_t *http = init_http();
-	char	*http_method;
-	char	*http_path;
-	char	*http_version;
+	char	*string_cut_ptr1 = header_str;
+	char	*string_cut_ptr2 = strstr(header_str, " ");
+	char	*http_method =  string_cutter(string_cut_ptr1, string_cut_ptr2);
+	char	*http_path = string_cutter(string_cut_ptr2 + 1, string_cut_ptr1 = strstr(string_cut_ptr2 + 1, " "));
+	char	*http_version = string_cutter(string_cut_ptr1 + 1 , string_cut_ptr2 = strstr(string_cut_ptr1 + 1, "\r\n"));
 	char	*http_field;
 	char	*http_val;
 
-	http_method = strtok(header_str, " ");
-	http_path = strtok(NULL, " ");
-	http_version = strtok(NULL, "\r\n");
 	if (http_method == NULL || http_path == NULL || http_version == NULL)
 	{
 		free_http(http);
 		return (NULL);
 	}
-	http = init_http_with_arg(http_method, http_path, http_version, "NULL");
-	http_field = strtok(NULL, " ");
-	http_val = strtok(NULL, "\r\n"); 
-	while (strncmp(http_field + 1, "\r\n", 2) != 0)
+	http = init_http_with_arg(http_method, http_path, http_version, "");
+	free(http_method);
+	free(http_path);
+	free(http_version);
+	http->status = NULL;
+	while (strncmp(string_cut_ptr2, "\r\n\r\n", 4) != 0)
 	{
-		if (add_field_to_http(http, http_field + 1, http_val) == -1)
+		http_field = string_cutter(string_cut_ptr2 + 2,string_cut_ptr1 = strstr(string_cut_ptr2 + 2, ":"));
+		if (http_field == NULL)
 		{
 			free_http(http);
 			return (NULL);
 		}
-		http_field = strtok(NULL, " ");
-		http_val = strtok(NULL, "\r\n");
+		http_val = string_cutter(string_cut_ptr1 + 2,string_cut_ptr2 = strstr(string_cut_ptr1 + 2, "\r\n"));
+		if (http_val == NULL)
+		{
+			free(http_field);
+			free_http(http);
+			return (NULL);
+		}
+		if (add_field_to_http(http, http_field, http_val) == -1)
+		{
+			free(http_field);
+			free(http_val);
+			free_http(http);
+			return (NULL);
+		}
+		free(http_field);
+		free(http_val);
 	}
-	// if ()
-	// if (add_body_to_http(http, strlen(header_str), header_str) == -1)
-	// 	return (NULL);
     return http;
 }
 
@@ -137,7 +193,7 @@ int server_routine (int client_sock)
     //       4. MAX_HTTP_MSG_HEADER_SIZE is reached (i.e. message is too long)
 	// bytes_received = send(client_sock, header_buffer, MAX_HTTP_MSG_HEADER_SIZE, 0);
 	bytes_received = read(client_sock, header_buffer, MAX_HTTP_MSG_HEADER_SIZE);
-	if (bytes_received == MAX_HTTP_MSG_HEADER_SIZE)
+	if (bytes_received > MAX_HTTP_MSG_HEADER_SIZE)
 		header_too_large_flag = -1;
 
     // while (1)
@@ -157,14 +213,14 @@ int server_routine (int client_sock)
     // HINT: In most real-world web browsers, this error rarely occurs.
     //       However, we implemented this case to give you a HINT on how to use the included functions in http_util.c.
 
-    if (header_too_large_flag < 0)
+    if (header_too_large_flag)
     {
         // Create the response, with the appropriate status code and http version.
         // Refer to http_util.c for more details.
         response = init_http_with_arg (NULL, NULL, http_version, "431");
         if (response == NULL)
         {
-            printf ("SERVER ERROR: Failed to create HTTP response\n");
+            ERROR_PRTF ("SERVER ERROR: Failed to create HTTP response\n");
             return -1;
         }
         // Add the appropriate fields to the header of the response.
@@ -185,19 +241,21 @@ int server_routine (int client_sock)
         //       which will make things MUCH EASIER for you. We highly recommend you to do so.
 
         request = parse_http_header (header_buffer); // TODO: Change this to your implementation.
-
+		if (request == NULL)
+		{
+			ERROR_PRTF ("SERVER ERROR: Failed to receive HTTP request\n");
+			return -1;
+		}
+		printf ("\tHTTP ");
+		GREEN_PRTF ("REQUEST:\n");
+		print_http_header (request);
 
         // We must behave differently depending on the type of the request.
         if (strncmp (request->method, "GET", 3) == 0)
         {
             // Case 2: GET request is received.
             // HINT: It is common to return index.html when the client requests a directory.
-			if (request != NULL)
-			{
-				printf ("\tHTTP ");
-				GREEN_PRTF ("REQUEST:\n");
-				print_http_header (request);
-			}
+
             // TODO: First check if the requested file needs authorization. If so, check if the client is authorized.
             // HINT: The client will send the ID and password in BASE64 encoding in the Authorization header field, 
             //       in the format of "Basic <ID:password>", where <ID:password> is encoded in BASE64.
@@ -205,51 +263,78 @@ int server_routine (int client_sock)
             int auth_flag = 0;
             char *auth_list[] = {"/secret.html", "/public/images/khl.jpg"};
             char ans_plain[] = "DCN:FALL2023"; // ID:password (Please do not change this.)
-			if (auth_flag == 0)
+			if (strstr(request->path, auth_list[0]) || strstr(request->path, auth_list[1]))
 			{
-				response = init_http_with_arg (NULL, NULL, http_version, "200");
-				if (response == NULL)
-				{
-					printf ("SERVER ERROR: Failed to create HTTP response\n");
-					return -1;
-				}
-				void *content = NULL;
-				char *file_path = copy_string(SERVER_ROOT);
-				file_path = strcat(file_path, request->path);
-				if (strcmp(request->path, "/") == 0)
-					file_path = strcat(file_path, "index.html");
-				printf("%s\n", file_path);
-				char *file_extension = copy_string(get_file_extension(file_path));
-				printf("%s\n", file_path);
-				add_body_to_http (response, read_file(&content, file_path), content);
-				printf("%s\n", file_path);
-				add_field_to_http (response, "Connection", "close");
-				add_field_to_http (response, "Content-Type", file_extension);
-				free(content);
-				free(file_path);
-				free(file_extension);
+				auth_flag = 1;
 			}
-			// if (strncmp(request->status, "401", 3) == 0)
-			// {
-			// 	if (find_http_field_val(request, auth_list) != NULL)
-			// 	{
-			// 		if (find_http_field_val(request, ans_plain) != NULL)
-			// 	}
-			// }
 
+			char *file_path = (char *)malloc(MAX_PATH_SIZE);
+			file_path = strcpy(file_path, SERVER_ROOT);
+			void *content = NULL;
+			file_path = strcat(file_path, request->path);
+			if (strcmp(request->path, "/") == 0)
+				file_path = strcat(file_path, "index.html");
+			ssize_t	body_size = read_file(&content, file_path);
             // Case 2-1: If authorization succeeded...
             // TODO: Get the file path from the request.
-
+			if (auth_flag == 0)
+			{
                 // Case 2-1-1: If the file does not exist...
                 // TODO: Send 404 Not Found.
-
+				if (body_size < 0)
+				{
+					response = init_http_with_arg (NULL, NULL, http_version, "404");
+					if (response == NULL)
+					{
+						ERROR_PRTF ("SERVER ERROR: Failed to create HTTP response\n");
+						free(file_path);
+						free(content);
+						return -1;
+					}
+					add_field_to_http (response, "Content-Type", "text/html");
+					add_field_to_http (response, "Connection", "close");
+        			char body[] = "<html><body><h1>404 Not Found</h1></body></html>";
+					add_body_to_http (response, sizeof(body), body);
+				}
                 // Case 2-1-2: If the file exists...
                 // TODO: Send 200 OK with the file as the body.
-
-
+				else
+				{
+					response = init_http_with_arg (NULL, NULL, http_version, "200");
+					if (response == NULL)
+					{
+						ERROR_PRTF ("SERVER ERROR: Failed to create HTTP response\n");
+						free(file_path);
+						free(content);
+						return -1;
+					}
+					char	*body_type = find_content_type(file_path, find_http_field_val(request, "Accept"));
+					add_body_to_http (response, (size_t)body_size, content);
+					add_field_to_http (response, "Connection", "close");
+					add_field_to_http (response, "Content-Type", body_type);
+				}
+			}
             // Case 2-2: If authorization failed...
             // TODO: Send 401 Unauthorized with WWW-Authenticate field set to Basic.
             //       Refer to https://developer.mozilla.org/ko/docs/Web/HTTP/Authentication for more information.
+			else
+			{
+				response = init_http_with_arg (NULL, NULL, http_version, "401");
+				if (response == NULL)
+				{
+					ERROR_PRTF ("SERVER ERROR: Failed to create HTTP response\n");
+					free(file_path);
+					free(content);
+					return -1;
+				}
+				add_field_to_http (response, "Content-Type", "text/html");
+				add_field_to_http (response, "Connection", "close");
+        		char body[] = "<html><body><h1>401 Unauthorized</h1></body></html>";
+				add_body_to_http (response, sizeof(body), body);
+				add_field_to_http (response, "WWW-Authenticate", "Basic realm=\"ID & Password?\"");
+			}
+			free(file_path);
+			free(content);
         }
         else if (strncmp (request->method, "POST", 4) == 0)
         {
@@ -260,16 +345,69 @@ int server_routine (int client_sock)
             //       Also, there might be some parts of the body that were received along with the header...
             //       Refer to https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST for more information.
 
-            // TODO: Parse each request_body of the multipart content request_body.
-
+            // TODO: Parse each request_body of the multipart content request_body.			
+			char *file_path = (char *)malloc(MAX_PATH_SIZE);
+			file_path = strcpy(file_path, SERVER_ROOT);
+			void *content = NULL;
+			file_path = strcat(file_path, request->path);
+			if (strcmp(request->path, "/") == 0)
+				file_path = strcat(file_path, "index.html");
+			ssize_t	body_size = read_file(&content, file_path);
+			http_t	*request_body = init_http();
+			char	*header_buffer_body = strstr(header_buffer, "Content");
+			char	*file_content = strstr(header_buffer, "\r\n\r\n");
+			file_content += 4;
+			char	*http_field = strtok(header_buffer_body, ":");
+			char	*http_val = strtok(NULL, "\r\n"); 
+			while (strncmp(http_field + 1, "\r\n", 2) != 0)
+			{
+				if (add_field_to_http(request_body, http_field + 1, http_val + 1) == -1)
+				{
+					ERROR_PRTF ("SERVER ERROR: Failed to receive HTTP field\n");
+					free_http(request_body);
+					return -1;
+				}
+				http_field = strtok(NULL, ":");
+				http_val = strtok(NULL, "\r\n");
+			}
+			printf ("\tHTTP ");
+			GREEN_PRTF ("POST BODY:\n");
+			print_http_header (request_body);
             // TODO: Get the filename of the file.
-
+			char	*tmp_fname = strstr(find_http_field_val(request_body, "Content-Disposition"), "filename=");
+			tmp_fname = strstr(tmp_fname, "\"");
+			// tmp_fname = strtok(NULL, "");
+            char	*filename = tmp_fname;
+			char	*file_extention = strstr(tmp_fname, ".");
             // TODO: Check if the file is an image file.
-
+			if (strncmp(file_extention, ".jpg", 4) != 0)
+			{
+				ERROR_PRTF ("SERVER ERROR: Invalid file type\n");
+				free_http (request);
+				free_http (request_body);
+				// free_http (requrequest_body_get_filenameest);/
+				// free_http (tmp_get_fname);
+				return -1;
+			}
             // TODO: Save the file in the album.
-
+			char	*write_path = (char *)calloc(MAX_PATH_SIZE, sizeof(char));
+			write_path = strcat(write_path, SERVER_ROOT);
+			write_path = strcat(write_path, ALBUM_PATH);
+			// char	*file_binary = strstr(find_http_field_val(request), "Content-Type");
+			// file_binary = strstr(file_binary, "boundary");
+			// file_binary = strstr(file_binary, "=");
+			// file_binary += 1;
+			ssize_t	file_size = write_file(write_path, file_content, sizeof(file_content));
+			if (file_size == -1)
+			{
+            	ERROR_PRTF ("SERVER ERROR: Failed to write file to album_images.html\n");
+				free_http (request);
+				free_http (request_body);
+				// free_http (requrequest_body_get_filenameest);
+				// free_http (tmp_get_fname);
+				return -1;
+			}
             // Append the appropriate html for the new image to album.html.
-            char filename[MAX_PATH_SIZE] = "TODO: Change this to the filename of the image";
             size_t html_append_size = strlen (ALBUM_HTML_TEMPLATE) + strlen (filename)*2 + 1;
             char *html_append = (char *)calloc (1, html_append_size);
             sprintf (html_append, ALBUM_HTML_TEMPLATE, filename, filename);
@@ -277,12 +415,33 @@ int server_routine (int client_sock)
             free (html_append);
 
             // TODO: Respond with a 200 OK.
-
+			response = init_http_with_arg (NULL, NULL, http_version, "200");
+			if (response == NULL)
+			{
+				ERROR_PRTF ("SERVER ERROR: Failed to create HTTP response\n");
+				free(file_path);
+				free(content);
+				return -1;
+			}
+			char	*body_type = find_content_type(file_path, find_http_field_val(request, "Accept"));
+			add_body_to_http (response, (size_t)file_size, file_content);
+			add_field_to_http (response, "Connection", "close");
+			add_field_to_http (response, "Content-Type", body_type);
         }
         else
         {
             // Case 4: Other requests...
             // TODO: Send 400 Bad Request.
+			response = init_http_with_arg (NULL, NULL, http_version, "400");
+			if (response == NULL)
+			{
+				ERROR_PRTF ("SERVER ERROR: Failed to create HTTP response\n");
+				return -1;
+			}
+			add_field_to_http (response, "Content-Type", "text/html");
+			add_field_to_http (response, "Connection", "close");
+      			char body[] = "<html><body><h1>404 Bad Request</h1></body></html>";
+			add_body_to_http (response, sizeof(body), body);
         }
     }
 
