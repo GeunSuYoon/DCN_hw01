@@ -332,8 +332,29 @@ struct 목록 :
     - TODO : 만약 REQUEST_BLOCK_INTERVAL_MSEC만큼 경과했으면 block 요청.
 - 0 반환.
 ---
+    int torrent_server (torrent_engine_t *engine)
+- TODO : 들어오는 connection accept 하기.
+- TODO : peer의 ip와 port 얻기.
+- TODO : massage 읽기.
+- TODO : massage에서 command parsing 하기
+- TODO : massage에서 peer engine hash parsing 하기. 만약 local enging hash에 해당 hash가 존재하면 massage 무시.
+- TODO : massage에서 peer listen port parsing 하기.
+- TODO : massage에서 peer torrent hash parsing 하기.
+- TODO : torrent가 peer에 없으면 peer에 torrent 더하기.
+- TODO : massage commend에 맞춰 handler function 부르기.
+  HINT : The handler function은 engine, peer_sock, peer, torrent, 그리고 msg_body가 필요함.
+  torrent engine으로 engine, peer, torrent arguments 참조하기. massage를 보낸 peer와 massage가 요구하는 torrent.
+  peer_sock argument는 accept_socket()의 반환을 참조.
+  msg_body argument는 massage의 [TORRENT_HASH] 부분이 존재하면 참조.
+- 0 반환.
+---
+    int listen_socket (int port)
+- TODO : 소켓을 열고 들어오는 connections listen. 소켓 파일이 존재하면 해당 fd, 에러나면 -1 반환.
+- 0 반환.
+---
     int accept_socket(int listen_sock, struct sockaddr_in *cli_addr, socklen_t *clilen);
-
+- TODO : 
+- 0 반환.
 ---
     int connect_socket(char *server_ip, int port);
 
