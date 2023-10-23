@@ -269,16 +269,57 @@ int torrent_client (torrent_engine_t *engine)
             // TODO: If torrent info has NOT been received, and REQUEST_TORRENT_INFO_INTERVAL_MSEC 
             //       has passed since last request, request the torrent info from the peer.
             // HINT: Make sure to use request_torrent_info_thread() instead of request_torrent_info().
-
+			if (request_torrent_info_thread(peer, torrent) == -1)
+			{
+				if (get_elapsed_msec() - torrent->last_torrent_save_msec == REQUEST_TORRENT_INFO_INTERVAL_MSEC)
+				{
+					if (request_torrent_info(peer, torrent) < 0)
+					{
+						ERROR_PRTF ("ERROR torrent_client(): invalid request torrent info from the peer.\n");
+						return -1;
+					}
+				}
+			}
             // TODO: If REQUEST_PEER_LIST_INTERVAL_MSEC has passed since last request, request peer list.
             // HINT: Make sure to use request_torrent_peer_list_thread() instead of request_torrent_peer_list().
-
+			if (request_torrent_info_thread(peer, torrent) == -1)
+			{
+				if (get_elapsed_msec() - torrent->last_torrent_save_msec == REQUEST_PEER_LIST_INTERVAL_MSEC)
+				{
+					if (request_torrent_peer_list(peer, torrent) < 0)
+					{
+						ERROR_PRTF ("ERROR torrent_client(): invalid request peer list.\n");
+						return -1;
+					}
+				}
+			}
             // TODO: If REQUEST_BLOCK_STATUS_INTERVAL_MSEC has passed since last request, request block status.
             // HINT: Make sure to use request_torrent_block_status_thread() instead of request_torrent_block_status().
-
+			if (request_torrent_info_thread(peer, torrent) == -1)
+			{
+				if (get_elapsed_msec() - torrent->last_torrent_save_msec == REQUEST_BLOCK_STATUS_INTERVAL_MSEC)
+				{
+					if (request_torrent_block_status(peer, torrent) < 0)
+					{
+						ERROR_PRTF ("ERROR torrent_client(): invalid request block status.\n");
+						return -1;
+					}
+				}
+			}
             // TODO: If REQUEST_BLOCK_INTERVAL_MSEC has passed since last request, request a block.
             // HINT: Make sure to use request_torrent_block_thread() instead of request_torrent_block().
             //       Use get_rand_missing_block_that_peer_has () function to randomly select a block to request.
+			if (request_torrent_info_thread(peer, torrent) == -1)
+			{
+				if (get_elapsed_msec() - torrent->last_torrent_save_msec == REQUEST_BLOCK_INTERVAL_MSEC)
+				{
+					if (get_rand_missing_block_that_peer_has(torrent, peer) < 0)
+					{
+						ERROR_PRTF ("ERROR torrent_client(): invalid request a block.\n");
+						return -1;
+					}
+				}
+			}
         }
     }
 
@@ -290,7 +331,7 @@ int torrent_client (torrent_engine_t *engine)
 int torrent_server (torrent_engine_t *engine)
 {
     // TODO: Accept incoming connections.
-
+	// if (accept_socket(engine->listen_sock, ) < 0)
     // TODO: Get peer ip and port.
 
     // TODO: Read message.
@@ -320,7 +361,20 @@ int torrent_server (torrent_engine_t *engine)
 //       Returns the socket file descriptor on success, -1 on error.
 int listen_socket (int port)
 {
-    return 0;
+	int	listen_sock = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (listen_sock < 0)
+	{
+		ERROR_PRTF ("ERROR listen_socket(): fail to creat the listen socket.\n");
+		return (-1);
+	}
+	if (listen(listen_sock, MAX_QUEUED_CONNECTIONS) == -1)
+	{
+		ERROR_PRTF ("ERROR listen_socket(): fail to listen the listen socket.\n");
+		close(listen_sock);
+		return (-1);
+	}
+    return listen_sock;
 }
 
 // TODO: Accept an incoming connection with a timeout. 
@@ -329,7 +383,19 @@ int listen_socket (int port)
 // HINT: Use poll() for timeout. kbhit() in torrent_util.c for an example on using poll().
 int accept_socket(int listen_sock, struct sockaddr_in *cli_addr, socklen_t *clilen)
 {
-    return 0;
+	int	accept_sock = accept(listen_sock, cli_addr, clilen);
+	if (accept_sock == -1)
+	{
+		ERROR_PRTF ("ERROR accept_socket(): fail to creat the accept socket.\n");
+		return (-2);
+	}
+	if (kbhit() > 0)
+	{
+		ERROR_PRTF ("ERROR accept_socket(): timeout.\n");
+		close(accept_sock);
+		return (-1);
+	}
+    return accept_sock;
 }
 
 // TODO: Connect to a server with a timeout. 
@@ -339,7 +405,54 @@ int accept_socket(int listen_sock, struct sockaddr_in *cli_addr, socklen_t *clil
 //       Use poll() for timeout. See kbhit() in torrent_utils.c for an example on using poll().
 int connect_socket(char *server_ip, int port)
 {
-    return 0;
+	int	connect_sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (connect_sock < 0)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): fail to creat the connect socket.\n");
+		return (-1);
+	}
+	struct sockaddr_in connect_add;
+	connect_add.sin_family = AF_INET;
+	connect_add.sin_port = htons(port);
+	connect_add.sin_addr.s_addr = inet_addr(server_ip);
+	if (fcntl(connect_sock, F_SETFL, O_NONBLOCK) != 0)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+		close(connect_sock);
+		return (-2);
+	}
+	if (connect(connect_sock, (struct sockaddr *)&connect_add, sizeof(connect_add)) < 0)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): fail to connect the connect socket.\n");
+		close(connect_sock);
+		return (-2);
+	}
+	if (kbhit() > 0)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): timeout.\n");
+		return (-1);
+	}
+	int	listen_sock = listen_socket(port);
+	if (listen_sock < 0)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): fail to listen.\n");
+		return (-2);
+	}
+	int	accept_sock = accept_socket(listen_sock, (struct sockaddr_in *)&connect_add, sizeof(connect_add));
+	if (accept_sock == -2)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): fail to accept the connect socket.\n");
+		close(connect_sock);
+		return (-2);
+	}
+	if (accept_sock == -1)
+	{
+		ERROR_PRTF ("ERROR connect_socket(): accept_socket timeout.\n");
+		close(connect_sock);
+		close(accept_sock);
+		return (-1);
+	}
+    return connect_sock;
 }
 
 // TODO: Request peer's peer list from a peer. 
