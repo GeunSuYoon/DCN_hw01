@@ -221,7 +221,7 @@ struct 목록 :
         void* data;
     
     };
----
+--- 
     struct torrent_engine
     {
         int port;
@@ -258,6 +258,9 @@ struct 목록 :
 ---
     size_t get_time_msec();
 - get 시간을 millisecond 단위로 확인함.
+---
+    size_t get_elapsed_msec();
+- 시간 경과를 millisecond 단위로 확인함.
 ---
     int get_int_str_len (size_t num);
 - str의 길이 num을 int로 변환함.
@@ -319,9 +322,15 @@ struct 목록 :
 - for문으로 size_t i가 0부터 engine의 토렌트 개수보다 작을 동안 돈다
     - engine의 i번째 토렌트를 torrent_t *torrent로 참조.
     - NULL이면 에러 출력 -1 반환.
-    - is_torrent_info_set으로 토렌트 내부에 정보 있으면 get_elapsed_msec()과 토렌트의 마지막 토렌트 저장 시간을 빼서 TORRENT_SAVE_INTERVAL_MSEC보다 크면 에러 출력 -1 반환.
+    - TODO : is_torrent_info_set으로 토렌트 내부에 정보 있으면 get_elapsed_msec()과 토렌트의 마지막 토렌트 저장 시간을 빼서 TORRENT_SAVE_INTERVAL_MSEC보다 크면 에러 출력 -1 반환.
     - 만약 마지막 리셋 후 RESET_BLOCK_STATUS_INTERVAL_MSEC만큼 시간이 경과했으면, REQUESTED 상태의 블록을 MISSING 상태로 전환.
-    - 
+- for문으로 size_t peer_idx 0으로 선언 및 초기화. torrent->num_peers보다 작을 동안 돈다.
+    - 해당 peer_idx번째 torrent의 peers를 peer_data_t *peer로 참조.
+    - TODO : 만약 torrent의 info 받는 것에 실패했고 마지막 request로 부터 REQUEST_TORRENT_INFO_INTERVAL_MSEC만큼 경과했으면 peer로 부터 토렌트 정보 요청.
+    - TODO : 만약 마지막 request로 부터 REQUEST_PEER_LIST_INTERVAL_MSEC만큼 경과했으면 peer의 list요청.
+    - TODO : 만약 REQUEST_BLOCK_STATUS_INTERVAL_MSEC만큼 경과했으면 block status 요청.
+    - TODO : 만약 REQUEST_BLOCK_INTERVAL_MSEC만큼 경과했으면 block 요청.
+- 0 반환.
 ---
     int accept_socket(int listen_sock, struct sockaddr_in *cli_addr, socklen_t *clilen);
 
