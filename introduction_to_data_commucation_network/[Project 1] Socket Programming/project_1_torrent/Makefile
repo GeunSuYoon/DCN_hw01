@@ -35,3 +35,6 @@ obj:
 
 clean:
 	rm -rf $(TARGET) $(OBJS) $(OBJDIR) $(SAVE_DIR)
+
+re: clean
+	make all

@@ -197,7 +197,7 @@ int handle_push_torrent_info (torrent_engine_t *engine, int peer_sock,
     // Check if torrent already has info.
     if (is_torrent_info_set (torrent) == 1)
     {
-        // ERROR_PRTF ("ERROR handle_push_torrent_info(): torrent already has info.\n");
+        ERROR_PRTF ("ERROR handle_push_torrent_info(): torrent already has info.\n");
         close (peer_sock);
         return -1;
     }
@@ -254,6 +254,11 @@ int torrent_client (torrent_engine_t *engine)
 
             // TODO: If RESET_BLOCK_STATUS_INTERVAL_MSEC has passed since last reset, reset blocks in
             //       REQUESTED state to MISSING state.
+            if (get_elapsed_msec() - torrent->last_torrent_save_msec == TORRENT_SAVE_INTERVAL_MSEC)
+			{
+				if (torrent->block_status == 1)
+					torrent->block_status = 0;
+			}
 
         }
 
