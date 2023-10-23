@@ -1,5 +1,9 @@
 {
 	"files.associations": {
-		"torrent_utils.h": "c"
+		"torrent_utils.h": "c",
+		"tcp.h": "c",
+		"curl.h": "c",
+		"system.h": "c",
+		"curlver.h": "c"
 	}
 }

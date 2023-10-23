@@ -14,6 +14,13 @@
 #define ALBUM_HTML_PATH "./server_root/public/album/album_images.html"
 #define ALBUM_HTML_TEMPLATE "<div class=\"card\"> <img src=\"/public/album/%s\" alt=\"Unable to load %s\"> </div>\n"
 
+void processMultipartFormData(char *boundary, char *data, size_t dataSize) {
+    char *part = strtok(data, boundary);
+    while (part != NULL) {
+        printf("%s\n", part);
+        part = strtok(NULL, boundary);
+    }
+}
 char	*find_content_type(char *file_path, char *request_accept)
 {
 	char	*tmp_path = copy_string(file_path);
@@ -57,19 +64,19 @@ char	*string_cutter(char *start, char *end)
 	return (ret_char);
 }
 
-http_t	*post_body(char *header_buffer, http_t *request)
-{
-	http_t	*ret_http = init_http();
-	char	*tmp = strstr(find_http_field_val(request, "Content-Type"), "boundary=");
-	if (tmp == NULL)
-		return (NULL);
-	tmp += strlen("boundary=");
-	char	*asdf = strstr(header_buffer, tmp);
-	printf("%s\n", asdf);
-	asdf = strstr(asdf + strlen(tmp), tmp);
-	printf("%s\n", asdf);
-	return (ret_http);
-}
+// http_t	*post_body(char *header_buffer, http_t *request)
+// {
+// 	http_t	*ret_http = init_http();
+// 	char	*tmp = strstr(find_http_field_val(request, "Content-Type"), "boundary=");
+// 	if (tmp == NULL)
+// 		return (NULL);
+// 	tmp += strlen("boundary=");
+// 	char	*asdf = strstr(header_buffer, tmp);
+// 	printf("%s\n", asdf);
+// 	asdf = strstr(asdf + strlen(tmp), tmp);
+// 	printf("%s\n", asdf);
+// 	return (ret_http);
+// }
 
 // You are NOT REQUIRED to implement and use parse_http_header() function for this project.
 // However, if you do, you will be able to use the http struct and its member functions,
@@ -372,12 +379,32 @@ int server_routine (int client_sock)
 
             // TODO: Parse each request_body of the multipart content request_body.			
 			http_t	*request_body = NULL;
-			request_body = post_body(header_buffer, request);
+			// request_body = post_body(header_buffer, request);
+			// CURL	*curl;
+			// CURLcode	res;
+			// char	body_buffer[MAX_HTTP_MSG_HEADER_SIZE];
+			// curl_global_init(CURL_GLOBAL_ALL);
+			// curl = curl_easy_init();
+			char	*write_path = (char *)calloc(strlen(SERVER_ROOT) + strlen(ALBUM_PATH) + 1, sizeof(char));
+			write_path = strcat(write_path, SERVER_ROOT);
+			write_path = strcat(write_path, ALBUM_PATH);
+			// if (curl)
+			// {
+			// 	curl_easy_setopt(curl, CURLOPT_URL, "http://127.0.0.1:62123/");
+			// 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_bytes);
+			// 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, body_buffer);
+
+			// 	res = curl_easy_perform(curl);
+			// 	if (res != CURLE_OK) {
+			// 		fprintf(stderr, "cURL failed: %s\n", curl_easy_strerror(res));
+        	// 	}
+			// }
 			// char	*tmp = strstr(header_buffer, "Content-Disposition");
 			// printf("%s\n", tmp);
-			// char	*boundary = strstr(find_http_field_val(request, "Content-Type"), "boundary=");
-			// if (boundary != NULL)
-			// 	boundary += strlen("boundary=");
+			char	*boundary = strstr(find_http_field_val(request, "Content-Type"), "boundary=");
+			if (boundary != NULL)
+				boundary += strlen("boundary=");
+			processMultipartFormData(boundary, header_buffer, sizeof(header_buffer));
 			// printf("%s\n", boundary);
 			// char	*body_data = strstr(header_buffer, boundary);
 			// char	*tmp = strstr(header_buffer, "\r\n\r\n");
@@ -409,7 +436,7 @@ int server_routine (int client_sock)
 			char	*tmp_fname = strstr(find_http_field_val(request_body, "Content-Disposition"), "filename=");
 			tmp_fname = strstr(tmp_fname, "\"");
             char	*filename = tmp_fname;
-			char	*file_extention = strstr(tmp_fname, ".");
+			char	*file_extention = get_file_extension(tmp_fname);
 			printf ("\tHTTP ");
 			GREEN_PRTF ("POST BODY:\n");
 			print_http_header (request_body);
@@ -422,9 +449,9 @@ int server_routine (int client_sock)
 				return -1;
 			}
             // TODO: Save the file in the album.
-			char	*write_path = (char *)calloc(MAX_PATH_SIZE, sizeof(char));
-			write_path = strcat(write_path, SERVER_ROOT);
-			write_path = strcat(write_path, ALBUM_PATH);
+			// char	*write_path = (char *)calloc(MAX_PATH_SIZE, sizeof(char));
+			// write_path = strcat(write_path, SERVER_ROOT);
+			// write_path = strcat(write_path, ALBUM_PATH);
 			ssize_t	file_size = write_file(write_path, file_content, sizeof(file_content));
 			if (file_size == -1)
 			{
