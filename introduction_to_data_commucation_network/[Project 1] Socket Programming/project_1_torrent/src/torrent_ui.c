@@ -658,7 +658,7 @@ int main (int argc, char **argv)
         else
             printf ("INVALID COMMAND. Type \"help\" for help.\n\n");
     }
-    printf ("Exiting. Press ENTER.\n");
     destroy_torrent_engine(torrent_engine);
+    printf ("Exiting. Press ENTER.\n");
     return 0;
 }

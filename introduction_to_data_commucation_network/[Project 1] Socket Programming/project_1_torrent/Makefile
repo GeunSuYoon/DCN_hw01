@@ -25,7 +25,7 @@ OBJS= $(addprefix $(OBJDIR), $(OBJECTS))
 all: obj $(TARGET) 
  
 $(TARGET): $(OBJS)
-	$(CC) $(COMMON) $(CFLAGS) $(OPTS) $^ -o $@ $(LDFLAGS)
+	$(CC) $(COMMON) $(CFLAGS) -g $(OPTS) $^ -o $@ $(LDFLAGS)
 
 $(OBJDIR)%.o: %.c $(DEPS)
 	$(CC) $(COMMON) $(CFLAGS) $(OPTS) -c $< -o $@
