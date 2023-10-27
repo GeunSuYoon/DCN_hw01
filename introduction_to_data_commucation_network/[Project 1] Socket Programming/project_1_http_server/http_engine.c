@@ -133,6 +133,7 @@ int server_engine (int server_port)
 	int	server_bind = bind(server_listening_sock, (struct sockaddr*)&server_addr_info, sizeof(server_addr_info));
 	if (server_bind == -1)
 	{
+        ERROR_PRTF ("SERVER ERROR: bind() error\n");
 		close(server_listening_sock);
     	return 0;
 	}
@@ -140,6 +141,7 @@ int server_engine (int server_port)
 	int server_listen = listen(server_listening_sock, MAX_WAITING_CONNECTIONS);
 	if (server_listen == -1)
 	{
+        ERROR_PRTF ("SERVER ERROR: listen() error\n");
 		close(server_listening_sock);
     	return 0;
 	}
@@ -406,16 +408,22 @@ int server_routine (int client_sock)
 			parsing_ptr2 = strstr(parsing_ptr1, "\"");
 			char	*filename = string_cutter(parsing_ptr1, parsing_ptr2);
 			char	*file_extension = get_file_extension(filename);
-			// char	content_finder[MAX_HTTP_MSG_HEADER_SIZE];
-			// int		content_find_len = read(client_sock, content_finder, atoi(find_http_field_val(request, "Content-Length")));
-			parsing_ptr2 = parsing_ptr1 + 2 + atoi(find_http_field_val(request, "Content-Length"));
+			char	*content_finder = (char *)calloc(atoi(find_http_field_val(request, "Content-Length")), sizeof(char));
+			int		content_find_len;
+			content_find_len = read(client_sock, content_finder, atoi(find_http_field_val(request, "Content-Length")));
+			// while (content_find_len == MAX_HTTP_MSG_HEADER_SIZE)
+				// content_find_len = read(client_sock, content_finder, MAX_HTTP_MSG_HEADER_SIZE);
+			// parsing_ptr2 = parsing_ptr1 + 2 + atoi(find_http_field_val(request, "Content-Length"));
 			// parsing_ptr2 = parsing_ptr1 + atoi(find_http_field_val(request, "Content-Length"));
-			char	*file_content = string_cutter(parsing_ptr1 + 2, parsing_ptr2);
+			// parsing_ptr1 = strlcpy(parsing_ptr1, content_finder, content_find_len + 1);
+			// parsing_ptr2 = strstr(content_finder, boundary);
+			char	*file_content = content_finder;
+			// file_content = memcpy(file_content, content_finder, content_find_len);
 			// file_content = strcpy(file_content, content_finder);
-			body_sucesser = add_body_to_http(request_body, sizeof(parsing_ptr1), parsing_ptr1);
 
 			printf ("\tHTTP ");
 			GREEN_PRTF ("POST BODY:\n");
+			body_sucesser = add_body_to_http(request_body, sizeof((void *)file_content), file_content);
 			print_http_header (request_body);
             // TODO: Check if the file is an image file.
 			if (strncmp(file_extension, "jpg", 3) != 0)
@@ -429,8 +437,7 @@ int server_routine (int client_sock)
 			// char	*write_path = (char *)calloc(MAX_PATH_SIZE, sizeof(char));
 			// write_path = strcat(write_path, SERVER_ROOT);
 			// write_path = strcat(write_path, ALBUM_PATH);
-			char	*write_path = (char *)calloc(strlen(SERVER_ROOT) + strlen(ALBUM_PATH) + 1, sizeof(char));
-			write_path = strcat(write_path, SERVER_ROOT);
+			char	*write_path = (char *)calloc(strlen(ALBUM_HTML_PATH) + 1, sizeof(char));
 			write_path = strcat(write_path, ALBUM_HTML_PATH);
 			ssize_t	file_size = write_file(write_path, file_content, sizeof(file_content));
 			free(write_path);
