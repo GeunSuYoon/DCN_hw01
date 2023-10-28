@@ -372,9 +372,9 @@ int server_routine (int client_sock)
             // TODO: Parse each request_body of the multipart content request_body.			
 			http_t	*request_body = NULL;
 			char	body_buffer[MAX_HTTP_MSG_HEADER_SIZE];
-			size_t	body_size;
-			body_size = read(client_sock, body_buffer, MAX_HTTP_MSG_HEADER_SIZE);
-			if (body_size < 0)
+			size_t	request_body_size;
+			request_body_size = read(client_sock, body_buffer, MAX_HTTP_MSG_HEADER_SIZE);
+			if (request_body_size < 0)
 			{
 				ERROR_PRTF ("SERVER ERROR: Failed to read HTTP request body.\n");
 				return -1;
@@ -409,7 +409,7 @@ int server_routine (int client_sock)
 			char	*filename = string_cutter(parsing_ptr1, parsing_ptr2);
 			char	*file_extension = get_file_extension(filename);
 			char	*content_finder = (char *)calloc(atoi(find_http_field_val(request, "Content-Length")), sizeof(char));
-			int		content_find_len;
+			int		content_find_len = atoi(find_http_field_val(request, "Content-Length"));
 			content_find_len = read(client_sock, content_finder, atoi(find_http_field_val(request, "Content-Length")));
 			// while (content_find_len == MAX_HTTP_MSG_HEADER_SIZE)
 				// content_find_len = read(client_sock, content_finder, MAX_HTTP_MSG_HEADER_SIZE);
@@ -417,7 +417,7 @@ int server_routine (int client_sock)
 			// parsing_ptr2 = parsing_ptr1 + atoi(find_http_field_val(request, "Content-Length"));
 			// parsing_ptr1 = strlcpy(parsing_ptr1, content_finder, content_find_len + 1);
 			// parsing_ptr2 = strstr(content_finder, boundary);
-			char	*file_content = content_finder;
+			void	*file_content = content_finder;
 			// file_content = memcpy(file_content, content_finder, content_find_len);
 			// file_content = strcpy(file_content, content_finder);
 
@@ -437,17 +437,17 @@ int server_routine (int client_sock)
 			// char	*write_path = (char *)calloc(MAX_PATH_SIZE, sizeof(char));
 			// write_path = strcat(write_path, SERVER_ROOT);
 			// write_path = strcat(write_path, ALBUM_PATH);
-			char	*write_path = (char *)calloc(strlen(ALBUM_HTML_PATH) + 1, sizeof(char));
-			write_path = strcat(write_path, ALBUM_HTML_PATH);
-			ssize_t	file_size = write_file(write_path, file_content, sizeof(file_content));
-			free(write_path);
-			if (file_size == -1)
-			{
-            	ERROR_PRTF ("SERVER ERROR: Failed to write file to album_images.html\n");
-				free_http (request);
-				free_http (request_body);
-				return -1;
-			}
+			// char	*write_path = (char *)calloc(strlen(ALBUM_HTML_PATH) + 1, sizeof(char));
+			// write_path = strcat(write_path, ALBUM_HTML_PATH);
+			// ssize_t	file_size = write_file(write_path, file_content, sizeof(file_content));
+			// free(write_path);
+			// if (file_size == -1)
+			// {
+            // 	ERROR_PRTF ("SERVER ERROR: Failed to write file to album_images.html\n");
+			// 	free_http (request);
+			// 	free_http (request_body);
+			// 	return -1;
+			// }
             // Append the appropriate html for the new image to album.html.
             // char filename[MAX_PATH_SIZE] = filename;
             size_t html_append_size = strlen (ALBUM_HTML_TEMPLATE) + strlen (filename)*2 + 1;
@@ -455,7 +455,7 @@ int server_routine (int client_sock)
             sprintf (html_append, ALBUM_HTML_TEMPLATE, filename, filename);
             append_file (ALBUM_HTML_PATH , html_append, strlen (html_append));
             free (html_append);
-			add_body_to_http (response, (size_t)file_size, file_content);
+			// add_body_to_http (response, (size_t)file_size, file_content);
 
             // TODO: Respond with a 200 OK.
 			char *file_path = (char *)malloc(MAX_PATH_SIZE);
@@ -464,7 +464,7 @@ int server_routine (int client_sock)
 			file_path = strcat(file_path, request->path);
 			if (strcmp(request->path, "/") == 0)
 				file_path = strcat(file_path, "index.html");
-			// ssize_t	body_size = read_file(&content, file_path);
+			ssize_t	body_size = read_file(&content, file_path);
 			response = init_http_with_arg (NULL, NULL, http_version, "200");
 			if (response == NULL)
 			{
@@ -473,8 +473,13 @@ int server_routine (int client_sock)
 				free(content);
 				return -1;
 			}
-			char	*file_ext = get_file_extension(find_http_field_val(request, "PATH"));
-			char	*body_type = find_content_type(file_ext, find_http_field_val(request, "Accept"));
+			char	*file_extention = get_file_extension(file_path);
+        	// char body[] = "<html><body><h1>POST Image</h1></body></html>";
+			char	*body_type = find_content_type(file_extention, find_http_field_val(request, "Accept"));
+			add_body_to_http (response, (size_t)body_size, content);
+			add_field_to_http (response, "Connection", "close");
+			add_field_to_http (response, "Content-Type", body_type);
+			// char	*body_type = find_content_type(file_ext, find_http_field_val(request, "Accept"));
         }
         else
         {
