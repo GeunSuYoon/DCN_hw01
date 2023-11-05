@@ -332,33 +332,27 @@ int torrent_server (torrent_engine_t *engine)
 	int	peer_sock;
 	peer_sock = accept_socket(engine->listen_sock, &peer_addr, &peer_addr_len);
 	if (peer_sock < 0) {
-		ERROR_PRTF ("ERROR torrent_server(): fail to accept server socket.\n");
-		close(peer_sock);
+		ERROR_PRTF ("ERROR torrent_server(): fail to accept peer socket.\n");
 		return -1;
 	}
-	// struct sockaddr_in	listen_addr;
-	// memset(&listen_addr, 0, sizeof(listen_addr));
-    // listen_addr.sin_family = AF_INET;
-    // listen_addr.sin_addr.s_addr = INADDR_ANY;
-    // listen_addr.sin_port = htons(port);
-	// if (bind(listen_sock, (struct sockaddr *)&listen_addr, sizeof(listen_addr)) == -1) {
-	// 	ERROR_PRTF ("ERROR listen_socket(): fail to bind listening socket.\n");
-    //     close(listen_sock);
-	// 	return -1;
-    // }
 	
     // TODO: Get peer ip and port.
-	char	peer_addr_int[INET_ADDRSTRLEN];
+	char	peer_ip[INET_ADDRSTRLEN];
 	int	peer_port = peer_addr.sin_port;
-	inet_ntop(AF_INET, &(peer_addr.sin_addr), peer_addr_int, INET_ADDRSTRLEN);
+	inet_ntop(AF_INET, &(peer_addr.sin_addr), peer_ip, INET_ADDRSTRLEN);
+	peer_port = ntohs(peer_addr.sin_port);
+	// inet_ntop(AF_INET, &(peer_addr.sin_addr), peer_ip, INET_ADDRSTRLEN);
 
     // TODO: Read message.
 	char	msg[MSG_LEN] = {0};
 	ssize_t msg_bytes = recv(peer_sock, msg, sizeof(msg), 0);
-	if (msg_bytes < -1)
+	if (msg_bytes < 0)
 	{
+		ERROR_PRTF ("ERROR torrent_server(): fail to read messege.\n");
+		close(peer_sock);
 		return (-1);
 	}
+	msg[msg_bytes] = '\0';
     // TODO: Parse command from message.
     char	*msg_com = strtok(msg, " ");
     // TODO: Parse peer engine hash from message.
@@ -370,9 +364,9 @@ int torrent_server (torrent_engine_t *engine)
     // TODO: Parse peer torrent hash from message.
 	char	*msg_tor_hash = strtok(NULL, " ");
 	HASH_t	msg_tor_hash_uint = str_to_hash(msg_tor_hash);
+	char	*msg_remain = strtok(NULL, "\0");
     // TODO: Add peer to torrent if it doesn't exist.
 	ssize_t	target_torrent = find_torrent(engine, msg_tor_hash_uint);
-	ssize_t	target_torrent_peer = find_peer(engine->torrents[target_torrent], peer_addr_int, peer_port);
 	if (target_torrent == -1)
 	{
 		if (add_torrent(engine, msg_tor_hash_uint) == -1)
@@ -380,9 +374,10 @@ int torrent_server (torrent_engine_t *engine)
 			return (-1);
 		}
 	}
-	else if (target_torrent_peer == -1)
+	ssize_t	target_torrent_peer = find_peer(engine->torrents[target_torrent], peer_ip, peer_port);
+	if (target_torrent_peer == -1)
 	{
-		if ((target_torrent_peer = add_peer(engine, msg_tor_hash_uint, peer_addr_int, peer_port)) == -1)
+		if ((target_torrent_peer = add_peer(engine, msg_tor_hash_uint, peer_ip, peer_port)) == -1)
 		{
 			return (-1);
 		}
@@ -398,7 +393,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_request_torrent_info(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to request torrent info.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -408,7 +403,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_push_torrent_info(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to push torrent info.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -418,7 +413,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_request_torrent_peer_list(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to request torrent peer info.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -428,7 +423,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_push_torrent_peer_list(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to push torrent peer list.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -438,7 +433,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_request_torrent_block_status(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to request torrent block status.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -448,7 +443,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_push_torrent_block_status(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to push torrent block status.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -458,7 +453,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_request_torrent_block(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to request torrent block.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -468,7 +463,7 @@ int torrent_server (torrent_engine_t *engine)
 		if (handle_push_torrent_block(engine, peer_sock, 
 			engine->torrents[target_torrent]->peers[target_torrent_peer], engine->torrents[target_torrent], msg))
 		{
-			ERROR_PRTF ("ERROR connect_socket(): fail to non-blocking the connect socket.\n");
+			ERROR_PRTF ("ERROR torrent_server(): fail to push torrent block.\n");
 			close(peer_sock);
 			return (-2);
 		}
@@ -481,17 +476,21 @@ int torrent_server (torrent_engine_t *engine)
 int listen_socket (int port)
 {
 	int	listen_sock = socket(AF_INET, SOCK_STREAM, 0);
-	struct sockaddr_in	listen_addr;
-	memset(&listen_addr, 0, sizeof(listen_addr));
-    listen_addr.sin_family = AF_INET;
-    listen_addr.sin_addr.s_addr = INADDR_ANY;
-    listen_addr.sin_port = htons(port);
-
-	if (listen_sock < 0)
+	if (listen_sock == -1)
 	{
 		ERROR_PRTF ("ERROR listen_socket(): fail to creat the listen socket.\n");
 		return (-1);
 	}
+	struct sockaddr_in	listen_addr;
+    listen_addr.sin_family = AF_INET;
+    listen_addr.sin_addr.s_addr = INADDR_ANY;
+    listen_addr.sin_port = htons(port);
+
+	// if (listen_sock < 0)
+	// {
+	// 	ERROR_PRTF ("ERROR listen_socket(): fail to creat the listen socket.\n");
+	// 	return (-1);
+	// }
 	if (bind(listen_sock, (struct sockaddr *)&listen_addr, sizeof(listen_addr)) == -1) {
 		ERROR_PRTF ("ERROR listen_socket(): fail to bind listening socket.\n");
         close(listen_sock);

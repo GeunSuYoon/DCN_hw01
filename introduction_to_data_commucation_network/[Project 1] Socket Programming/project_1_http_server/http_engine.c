@@ -204,7 +204,7 @@ int server_routine (int client_sock)
         ERROR_PRTF ("SERVER ERROR: Failed to read HTTP request header\n");
         return -1;
 	}
-	if (bytes_received > MAX_HTTP_MSG_HEADER_SIZE)
+	if (bytes_received >= MAX_HTTP_MSG_HEADER_SIZE)
 		header_too_large_flag = -1;
 
     // while (1)
@@ -362,6 +362,7 @@ int server_routine (int client_sock)
         }
         else if (strncmp (request->method, "POST", 4) == 0)
         {
+	printf("%s\n", header_buffer);
             // Case 3: POST request is received.
             // TODO: Receive the body of the POST http message.
             // HINT: Use the Content-Length & boundary in Content-type field in the header to determine 
@@ -372,13 +373,14 @@ int server_routine (int client_sock)
             // TODO: Parse each request_body of the multipart content request_body.			
 			http_t	*request_body = NULL;
 			char	body_buffer[MAX_HTTP_MSG_HEADER_SIZE];
-			size_t	request_body_size;
+			int		request_body_size;
 			request_body_size = read(client_sock, body_buffer, MAX_HTTP_MSG_HEADER_SIZE);
 			if (request_body_size < 0)
 			{
 				ERROR_PRTF ("SERVER ERROR: Failed to read HTTP request body.\n");
 				return -1;
 			}
+			size_t	request_body_len = request_body_size;
 			request_body = init_http();
 			if (request_body == NULL)
 			{
@@ -408,16 +410,29 @@ int server_routine (int client_sock)
 			parsing_ptr2 = strstr(parsing_ptr1, "\"");
 			char	*filename = string_cutter(parsing_ptr1, parsing_ptr2);
 			char	*file_extension = get_file_extension(filename);
-			char	*content_finder = (char *)calloc(atoi(find_http_field_val(request, "Content-Length")), sizeof(char));
-			int		content_find_len = atoi(find_http_field_val(request, "Content-Length"));
-			content_find_len = read(client_sock, content_finder, atoi(find_http_field_val(request, "Content-Length")));
+			char	*content_finder[MAX_HTTP_MSG_HEADER_SIZE];
+			int		content_len = atoi(find_http_field_val(request, "Content-Length"));
+			void	*file_content = calloc(content_len + 1, sizeof(char));
+			int		readed_len = read_bytes(client_sock, file_content, content_len);
+			
+			// int		content_find_len;
+			// int		readed_len = 0;
+			// content_find_len = read(client_sock, content_finder, MAX_HTTP_MSG_HEADER_SIZE);
 			// while (content_find_len == MAX_HTTP_MSG_HEADER_SIZE)
-				// content_find_len = read(client_sock, content_finder, MAX_HTTP_MSG_HEADER_SIZE);
+			// {
+			// 	file_content = strcat(file_content, (const char *)content_finder);
+			// 	readed_len += content_find_len;
+			// 	content_find_len = read(client_sock, content_finder, MAX_HTTP_MSG_HEADER_SIZE);
+			// }
+			// if (readed_len != content_len)
+			// {
+			// 	ERROR_PRTF ("SERVER ERROR: Failed to receive HTTP post content.\n");
+			// 	return -1;
+			// }
 			// parsing_ptr2 = parsing_ptr1 + 2 + atoi(find_http_field_val(request, "Content-Length"));
 			// parsing_ptr2 = parsing_ptr1 + atoi(find_http_field_val(request, "Content-Length"));
 			// parsing_ptr1 = strlcpy(parsing_ptr1, content_finder, content_find_len + 1);
 			// parsing_ptr2 = strstr(content_finder, boundary);
-			void	*file_content = content_finder;
 			// file_content = memcpy(file_content, content_finder, content_find_len);
 			// file_content = strcpy(file_content, content_finder);
 

@@ -55,12 +55,18 @@ void destroy_torrent_engine (torrent_engine_t *engine)
 {
     if (engine == NULL)
         return;
+	printf("test engine is not null\n");
     engine->stop_engine = 1;
+	printf("test pthread join\n");
     pthread_join (engine->thread, NULL);
+	printf("test loop\n");
     if (engine->torrents != NULL)
     {
         for (size_t i = 0; i < engine->max_num_torrents; i++)
+		{
+			printf("test [%zu]\n", i);
             destroy_torrent (engine->torrents[i]);
+		}
         free (engine->torrents);
     }
     if (engine->listen_sock != -1)
@@ -658,7 +664,9 @@ int main (int argc, char **argv)
         else
             printf ("INVALID COMMAND. Type \"help\" for help.\n\n");
     }
+	printf("test\n");
     destroy_torrent_engine(torrent_engine);
+	printf("test\n");
     printf ("Exiting. Press ENTER.\n");
     return 0;
 }

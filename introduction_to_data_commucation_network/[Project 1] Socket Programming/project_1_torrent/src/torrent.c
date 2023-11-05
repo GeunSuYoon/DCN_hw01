@@ -35,7 +35,10 @@ void *torrent_engine_thread (void *_engine)
         torrent_client (engine);
         size_t start_time = get_elapsed_msec();
         while (get_elapsed_msec () < start_time + SERVER_TIME_MSEC)
+		{
+			printf("test server\n");
             torrent_server (engine);
+		}
         pthread_mutex_unlock (&engine->mutex);
         usleep ((rand() % RAND_WAIT_MSEC + 10) * 1000);
         if (print_info == 1)
