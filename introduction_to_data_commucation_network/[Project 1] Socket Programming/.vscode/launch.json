@@ -9,7 +9,7 @@
       "args": [
         "62123"
       ],
-      "cwd": "/goinfre/geuyoon/hw/introduction_to_data_commucation_network/[Project 1] Socket Programming/project_1_torrent/src"
+      "cwd": "${workspaceFolder}/project_1_torrent/"
     },
     {
       "name": "C/C++ Runner: Debug Session",

@@ -228,7 +228,6 @@ int handle_push_torrent_info (torrent_engine_t *engine, int peer_sock,
 // TODO: Complete the Client Routine.
 int torrent_client (torrent_engine_t *engine)
 {
-
     // Iterate through all torrents and take action.
     for (size_t i = 0; i < engine->num_torrents; i++)
     {
@@ -338,9 +337,8 @@ int torrent_server (torrent_engine_t *engine)
 	
     // TODO: Get peer ip and port.
 	char	peer_ip[INET_ADDRSTRLEN];
-	int	peer_port = peer_addr.sin_port;
+	unsigned int	peer_port = ntohs(peer_addr.sin_port);
 	inet_ntop(AF_INET, &(peer_addr.sin_addr), peer_ip, INET_ADDRSTRLEN);
-	peer_port = ntohs(peer_addr.sin_port);
 	// inet_ntop(AF_INET, &(peer_addr.sin_addr), peer_ip, INET_ADDRSTRLEN);
 
     // TODO: Read message.
@@ -352,7 +350,6 @@ int torrent_server (torrent_engine_t *engine)
 		close(peer_sock);
 		return (-1);
 	}
-	msg[msg_bytes] = '\0';
     // TODO: Parse command from message.
     char	*msg_com = strtok(msg, " ");
     // TODO: Parse peer engine hash from message.
@@ -481,16 +478,13 @@ int listen_socket (int port)
 		ERROR_PRTF ("ERROR listen_socket(): fail to creat the listen socket.\n");
 		return (-1);
 	}
+	int	reuse = 1;
+	setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
 	struct sockaddr_in	listen_addr;
     listen_addr.sin_family = AF_INET;
     listen_addr.sin_addr.s_addr = INADDR_ANY;
     listen_addr.sin_port = htons(port);
 
-	// if (listen_sock < 0)
-	// {
-	// 	ERROR_PRTF ("ERROR listen_socket(): fail to creat the listen socket.\n");
-	// 	return (-1);
-	// }
 	if (bind(listen_sock, (struct sockaddr *)&listen_addr, sizeof(listen_addr)) == -1) {
 		ERROR_PRTF ("ERROR listen_socket(): fail to bind listening socket.\n");
         close(listen_sock);
@@ -701,7 +695,7 @@ int request_torrent_block (peer_data_t *peer, torrent_t *torrent, size_t block_i
         close (peer_sock);
         return -2;
     }
-	torrent->block_status[block_index] = B_REQUESTED;
+	// torrent->block_status[block_index] = B_REQUESTED;
 
     close (peer_sock);
 
@@ -722,14 +716,14 @@ int push_torrent_peer_list (peer_data_t *peer, torrent_t *torrent)
 {
     if (peer == NULL || torrent == NULL)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): invalid argument.\n");
+        ERROR_PRTF ("ERROR push_torrent_peer_list(): invalid argument.\n");
         return -2;
     }
 
     // Format message.
     char msg[MSG_LEN] = {0};
 	char	msg_peer_list[PEER_LIST_MAX_BYTE_PER_PEER * DEFAULT_ARR_MAX_NUM] = {0};
-    sprintf (msg, "PUSH_TORRENT_INFO 0x%08x %d 0x%08x %zu", torrent->engine->engine_hash,
+    sprintf (msg, "PUSH_TORRENT_PEER_LIST 0x%08x %d 0x%08x %zu", torrent->engine->engine_hash,
         torrent->engine->port, torrent->torrent_hash, torrent->num_peers);
 	for (size_t i = 0; i < torrent->num_peers; i++)
 	    sprintf (msg_peer_list, "%s:%d ", torrent->peers[i]->ip, torrent->peers[i]->port);
@@ -744,7 +738,7 @@ int push_torrent_peer_list (peer_data_t *peer, torrent_t *torrent)
     }
     else if (peer_sock < -1)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): connect_socket() failed.\n");
+        ERROR_PRTF ("ERROR push_torrent_peer_list(): connect_socket() failed.\n");
         return -2;
     }
 
@@ -754,13 +748,13 @@ int push_torrent_peer_list (peer_data_t *peer, torrent_t *torrent)
     // Send message.
     if (write_bytes (peer_sock, msg, MSG_LEN) != MSG_LEN)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): send() failed.\n");
+        ERROR_PRTF ("ERROR push_torrent_peer_list(): send() failed.\n");
         close (peer_sock);
         return -2;
     }
     if (write_bytes (peer_sock, msg_peer_list, PEER_LIST_MAX_BYTE_PER_PEER * DEFAULT_ARR_MAX_NUM) != PEER_LIST_MAX_BYTE_PER_PEER * DEFAULT_ARR_MAX_NUM)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): send() failed.\n");
+        ERROR_PRTF ("ERROR push_torrent_peer_list(): send() failed.\n");
         close (peer_sock);
         return -2;
     }
@@ -781,7 +775,7 @@ int push_torrent_block_status (peer_data_t *peer, torrent_t *torrent)
 {
     if (peer == NULL || torrent == NULL)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): invalid argument.\n");
+        ERROR_PRTF ("ERROR push_torrent_block_status(): invalid argument.\n");
         return -2;
     }
 
@@ -790,7 +784,7 @@ int push_torrent_block_status (peer_data_t *peer, torrent_t *torrent)
 	char msg_stat[sizeof(B_STAT)] = {0};
     sprintf (msg, "PUSH_TORRENT_BLOCK_STATUS 0x%08x %d 0x%08x", torrent->engine->engine_hash,
         torrent->engine->port, peer->torrent->torrent_hash);
-    sprintf (msg_stat, "%d", *(torrent->block_status));
+	memcpy (msg_stat, &(torrent->block_status), sizeof(B_STAT));
 
     // Connect to peer.
     int peer_sock = connect_socket (peer->ip, peer->port);
@@ -802,7 +796,7 @@ int push_torrent_block_status (peer_data_t *peer, torrent_t *torrent)
     }
     else if (peer_sock < -1)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): connect_socket() failed.\n");
+        ERROR_PRTF ("ERROR push_torrent_block_status(): connect_socket() failed.\n");
         return -2;
     }
 
@@ -812,13 +806,13 @@ int push_torrent_block_status (peer_data_t *peer, torrent_t *torrent)
     // Send message.
     if (write_bytes (peer_sock, msg, MSG_LEN) != MSG_LEN)
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): send() failed.\n");
+        ERROR_PRTF ("ERROR push_torrent_block_status(): send() failed.\n");
         close (peer_sock);
         return -2;
     }
     if (write_bytes (peer_sock, msg_stat, sizeof(B_STAT)) != sizeof(B_STAT))
     {
-        ERROR_PRTF ("ERROR push_torrent_info(): send() failed.\n");
+        ERROR_PRTF ("ERROR push_torrent_block_status(): send() failed.\n");
         close (peer_sock);
         return -2;
     }
@@ -843,10 +837,10 @@ int push_torrent_block (peer_data_t *peer, torrent_t *torrent, size_t block_inde
     peer->last_torrent_info_request_msec = get_elapsed_msec();
 
 	char msg[MSG_LEN] = {0};
-	char msg_stat[BLOCK_SIZE] = {0};
+	char block_data[BLOCK_SIZE] = {0};
     sprintf (msg, "PUSH_TORRENT_BLOCK 0x%08x %d 0x%08x %zu", torrent->engine->engine_hash,
         torrent->engine->port, peer->torrent->torrent_hash, block_index);
-    sprintf (msg_stat, "%p", get_block_ptr(torrent, block_index));
+    strncpy (block_data, get_block_ptr(torrent, block_index), BLOCK_SIZE - 1);
 	
     int peer_sock = connect_socket (peer->ip, peer->port);
     if (peer_sock == -1)
@@ -871,7 +865,7 @@ int push_torrent_block (peer_data_t *peer, torrent_t *torrent, size_t block_inde
         close (peer_sock);
         return -2;
     }
-    if (write_bytes (peer_sock, msg_stat, BLOCK_SIZE) != BLOCK_SIZE)
+    if (write_bytes (peer_sock, block_data, BLOCK_SIZE) != BLOCK_SIZE)
     {
         ERROR_PRTF ("ERROR push_torrent_block(): send() failed - %d\n", peer_sock);
         close (peer_sock);
@@ -997,13 +991,9 @@ int handle_request_torrent_block (torrent_engine_t *engine, int peer_sock,
 
     INFO_PRTF ("\t[%04.3fs] RECEIVED REQUEST FOR 0x%08x INFO FROM %s:%d\n", (double)get_elapsed_msec()/1000,
         torrent->torrent_hash, peer->ip, peer->port);
-	char *block_idx = strtok(msg_body, " ");
-	block_idx = strtok(msg_body, " ");
-	block_idx = strtok(msg_body, " ");
-	block_idx = strtok(msg_body, " ");
-	block_idx = strtok(msg_body, " ");
+
     // If torrent info exists, Push torrent info to peer.
-    if (is_torrent_info_set (torrent) == 1 && push_torrent_block (peer, torrent, atoi(block_idx)) < -1)
+    if (is_torrent_info_set (torrent) == 1 && push_torrent_block (peer, torrent, atoi(val)) < -1)
     {
         ERROR_PRTF ("ERROR handle_request_torrent_block(): push_torrent_info() failed.\n");
         return -1;
@@ -1021,36 +1011,66 @@ int handle_request_torrent_block (torrent_engine_t *engine, int peer_sock,
 int handle_push_torrent_peer_list (torrent_engine_t *engine, int peer_sock, 
     peer_data_t *peer, torrent_t *torrent, char *msg_body)
 {
-    if (peer_sock < 0)
+   if (peer_sock < 0)
     {
         ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): invalid socket.\n");
         return -1;
     }
-    if (engine == NULL || peer == NULL || torrent == NULL)
+    if (engine == NULL || peer == NULL || torrent == NULL || msg_body == NULL)
     {
         ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): invalid argument.\n");
         close (peer_sock);
         return -1;
     }
-    close (peer_sock);
+
+    // Parse num peers.
+    char *val = strtok (msg_body, " ");
+    int	num_peers = atoi(val);
+
+    // Parse n-th peer IP and port.
+    char	*peer_ip_char;
+    char	*peer_port_char;
+    int 	peer_port_int;
+	for (int i = 0; i < num_peers; i++)
+	{
+		peer_ip_char = strtok (NULL, ":");
+		if (check_ipv4(peer_ip_char) == -1)
+		{
+			ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): invalid peer %d-th ip.\n", i);
+			close (peer_sock);
+			return -1;
+		}
+		peer_port_char = strtok (NULL, " ");
+		peer_port_int = atoi (peer_port_char);
+		INFO_PRTF ("\t[%04.3fs] RECEIVED PUSH FOR 0x%08x INFO FROM %s:%d- IP: %s, port: %d\n"
+			, (double)get_elapsed_msec()/1000, torrent->torrent_hash, peer->ip, peer->port, peer_ip_char, peer_port_int);
+		// Update peer info to torrent.
+		if (torrent_add_peer (torrent, peer_ip_char, peer_port_int) < 0)
+		{
+			ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): torrent_add_peer() failed.\n");
+			close (peer_sock);
+			return -1;
+    	}
+	}
 
     // Check for extra arguments.
-    char *val = strtok (msg_body, " ");
+    val = strtok (NULL, " ");
     if (val != NULL)
     {
         ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): invalid message.\n");
+        close (peer_sock);
         return -1;
     }
 
-    INFO_PRTF ("\t[%04.3fs] RECEIVED REQUEST FOR 0x%08x INFO FROM %s:%d\n", (double)get_elapsed_msec()/1000,
-        torrent->torrent_hash, peer->ip, peer->port);
-
-    // If torrent info exists, Push torrent info to peer.
-    if (is_torrent_info_set (torrent) == 1 && push_torrent_peer_list(peer, torrent) < -1)
+    // Read block hashes.
+    if (read_bytes (peer_sock, torrent->block_hashes, torrent->num_blocks * sizeof(HASH_t)) != 
+        torrent->num_blocks * sizeof(HASH_t))
     {
-        ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): push_torrent_info() failed.\n");
+        ERROR_PRTF ("ERROR handle_push_torrent_peer_list(): read_bytes() failed.\n");
+        close (peer_sock);
         return -1;
     }
+    close (peer_sock);
 
     return 0;
 }
@@ -1064,38 +1084,34 @@ int handle_push_torrent_peer_list (torrent_engine_t *engine, int peer_sock,
 int handle_push_torrent_block_status (torrent_engine_t *engine, int peer_sock, 
     peer_data_t *peer, torrent_t *torrent, char *msg_body)
 {
-    // if (peer_sock < 0)asdfasdfasdfasdf
-    // {
-    //     ERROR_PRTF ("ERROR handle_push_torrent_block_status(): invalid socket.\n");
-    //     return -1;
-    // }
-    // if (engine == NULL || peer == NULL || torrent == NULL || msg_body == NULL)
-    // {
-    //     ERROR_PRTF ("ERROR handle_push_torrent_block_status(): invalid argument.\n");
-    //     close (peer_sock);
-    //     return -1;
-    // }
+    if (peer_sock < 0)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block_status(): invalid socket.\n");
+        return -1;
+    }
+    if (engine == NULL || peer == NULL || torrent == NULL || msg_body == NULL)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block_status(): invalid argument.\n");
+        close (peer_sock);
+        return -1;
+    }
 
-    // // Parse torrent name.
-    // char *val = strtok (msg_body, " ");
-    // char torrent_name[STR_LEN] = {0};
-    // strncpy (torrent_name, val, STR_LEN - 1);
+    // Parse torrent name.
+    char *val = strtok (msg_body, " ");
+    char block_status[sizeof(B_STAT) + 1] = {0};
+    strncpy (block_status, val, sizeof(B_STAT));
 
-    // // Parse file size.
-    // val = strtok (NULL, " ");
-    // size_t file_size = atoi (val);
+    // Check for extra arguments.
+    val = strtok (NULL, " ");
+    if (val != NULL)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block_status(): invalid message.\n");
+        close (peer_sock);
+        return -1;
+    }
 
-    // // Check for extra arguments.
-    // val = strtok (NULL, " ");
-    // if (val != NULL)
-    // {
-    //     ERROR_PRTF ("ERROR handle_push_torrent_block_status(): invalid message.\n");
-    //     close (peer_sock);
-    //     return -1;
-    // }
-
-    // INFO_PRTF ("\t[%04.3fs] RECEIVED PUSH FOR 0x%08x INFO FROM %s:%d- NAME: %s, SIZE: %ld\n"
-    //     , (double)get_elapsed_msec()/1000, torrent->torrent_hash, peer->ip, peer->port, torrent_name, file_size);
+    INFO_PRTF ("\t[%04.3fs] RECEIVED PUSH FOR 0x%08x INFO FROM %s:%d- BLOCKSTATUS: %s\n"
+        , (double)get_elapsed_msec()/1000, torrent->torrent_hash, peer->ip, peer->port, block_status);
 
     // // Check if torrent already has info.
     // if (is_torrent_info_set (torrent) == 1)
@@ -1105,7 +1121,8 @@ int handle_push_torrent_block_status (torrent_engine_t *engine, int peer_sock,
     //     return -1;
     // }
 
-    // // Update torrent info.
+    // // Update torrent block status.
+	// torrent->block_status = (B_STAT *)strtol(block_status, NULL, 2);
     // if (set_torrent_info (torrent, torrent_name, file_size) < 0)
     // {
     //     ERROR_PRTF ("ERROR handle_push_torrent_block_status(): set_torrent_info() failed.\n");
@@ -1113,15 +1130,15 @@ int handle_push_torrent_block_status (torrent_engine_t *engine, int peer_sock,
     //     return -1;
     // }
 
-    // // Read block hashes.
-    // if (read_bytes (peer_sock, torrent->block_hashes, torrent->num_blocks * sizeof(HASH_t)) != 
-    //     torrent->num_blocks * sizeof(HASH_t))
-    // {
-    //     ERROR_PRTF ("ERROR handle_push_torrent_block_status(): read_bytes() failed.\n");
-    //     close (peer_sock);
-    //     return -1;
-    // }
-    // close (peer_sock);
+    // Read block hashes.
+    if (read_bytes (peer_sock, torrent->block_hashes, torrent->num_blocks * sizeof(HASH_t)) != 
+        torrent->num_blocks * sizeof(HASH_t))
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block_status(): read_bytes() failed.\n");
+        close (peer_sock);
+        return -1;
+    }
+    close (peer_sock);
 
     return 0;
 }
@@ -1135,6 +1152,69 @@ int handle_push_torrent_block_status (torrent_engine_t *engine, int peer_sock,
 //       Use strtok(). Check if torrent info has been received.
 int handle_push_torrent_block (torrent_engine_t *engine, int peer_sock, 
     peer_data_t *peer, torrent_t *torrent, char *msg_body)
-{
+{    if (peer_sock < 0)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block(): invalid socket.\n");
+        return -1;
+    }
+    if (engine == NULL || peer == NULL || torrent == NULL || msg_body == NULL)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block(): invalid argument.\n");
+        close (peer_sock);
+        return -1;
+    }
+
+    // Parse torrent name.
+    char *val = strtok (msg_body, " ");
+    char torrent_name[STR_LEN] = {0};
+    strncpy (torrent_name, val, STR_LEN - 1);
+
+    // Parse file size.
+    val = strtok (NULL, " ");
+    size_t block_idx = atoi (val);
+	val = strtok (NULL, " ");
+	char block_data[BLOCK_SIZE] = {0};
+    strncpy (block_data, val, BLOCK_SIZE - 1);
+
+    // Check for extra arguments.
+    val = strtok (NULL, " ");
+    if (val != NULL)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block(): invalid message.\n");
+        close (peer_sock);
+        return -1;
+    }
+
+    INFO_PRTF ("\t[%04.3fs] RECEIVED PUSH FOR 0x%08x INFO FROM %s:%d- BLOCK IDX: %zu\n"
+        , (double)get_elapsed_msec()/1000, torrent->torrent_hash, peer->ip, peer->port, block_idx);
+
+    // Check if peer block status is requested.
+    if (is_torrent_info_set (torrent) == 1)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block(): torrent already has info.\n");
+        close (peer_sock);
+        return -1;
+    }
+
+    // Update torrent info.
+    if (torrent->block_status[block_idx] != B_REQUESTED)
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block(): set_torrent_info() failed.\n");
+        close (peer_sock);
+        return -1;
+    }
+	strncpy(torrent->data, block_data, BLOCK_SIZE - 1);
+	torrent->block_status[block_idx] = B_READY;
+
+    // Read block hashes.
+    if (read_bytes (peer_sock, torrent->block_hashes, torrent->num_blocks * sizeof(HASH_t)) != 
+        torrent->num_blocks * sizeof(HASH_t))
+    {
+        ERROR_PRTF ("ERROR handle_push_torrent_block(): read_bytes() failed.\n");
+        close (peer_sock);
+        return -1;
+    }
+    close (peer_sock);
+
     return 0;
 }

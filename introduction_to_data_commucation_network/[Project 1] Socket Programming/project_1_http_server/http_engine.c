@@ -135,7 +135,7 @@ int server_engine (int server_port)
 	{
         ERROR_PRTF ("SERVER ERROR: bind() error\n");
 		close(server_listening_sock);
-    	return 0;
+    	return -1;
 	}
     // TODO: Listen for incoming connections
 	int server_listen = listen(server_listening_sock, MAX_WAITING_CONNECTIONS);
@@ -143,7 +143,7 @@ int server_engine (int server_port)
 	{
         ERROR_PRTF ("SERVER ERROR: listen() error\n");
 		close(server_listening_sock);
-    	return 0;
+    	return -1;
 	}
     // Serve incoming connections forever
     while (1)

@@ -45,8 +45,11 @@ torrent_engine_t *init_torrent_engine (int port)
         engine->torrents[i] = NULL;
 
     engine->stop_engine = 0;
+		printf("test init_torrent_engine mutex init\n");
     pthread_mutex_init (&engine->mutex, NULL);
+		printf("test init_torrent_engine create\n");
     pthread_create (&engine->thread, NULL, torrent_engine_thread, engine);
+		printf("test\n");
 
     return engine;
 }
@@ -194,6 +197,7 @@ void print_engine_status (torrent_engine_t *engine)
         GREEN_PRTF ("\tENGINE RUNNING - ")
     else
         RED_PRTF ("\tENGINE KILLED - ")
+	printf ("test\n");
     printf ("ENGINE HASH 0x%08x, PORT: %d, NUM_TORRENTS: %ld\n", engine->engine_hash,
         engine->port, engine->num_torrents);
     for (size_t i = 0; i < engine->num_torrents; i++)
@@ -406,9 +410,13 @@ int main (int argc, char **argv)
         else if (strncmp (cmd, "status", 7) == 0 && strlen(cmd) == 6)
         {
             GREEN_PRTF ("PRINTING ENGINE STATUS:\n");
+			printf("test\n");
             pthread_mutex_lock (&(torrent_engine->mutex));
+			printf("test\n");
             print_engine_status (torrent_engine);
+			printf("test\n");
             pthread_mutex_unlock (&(torrent_engine->mutex));
+			printf("test\n");
             printf ("\n");
         }
         else if (strncmp (cmd, "watch", 5) == 0 && strlen(cmd) < 6)
